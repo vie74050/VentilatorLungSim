@@ -2,344 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Ventilator Simulator</title>
-<style>
-  :root{
-    --bg-deep:#101214;
-    --bg-panel:#1d2023;
-    --bg-screen:#1a1d20;
-    --bg-tile:#23262a;
-    --bg-tile-2:#2a2e32;
-    --line:#34383d;
-    --text-hi:#e7e9ea;
-    --text-dim:#8c9094;
-    --text-faint:#5c6066;
-    --amber:#e8a43d;
-    --green:#5fcf86;
-    --cyan:#5cc9da;
-    --magenta:#e8336e;
-    --magenta-dim:#7a2f43;
-    --mono: 'IBM Plex Mono', 'SF Mono', Menlo, Consolas, monospace;
-    --grotesk: 'Inter', -apple-system, 'Segoe UI', sans-serif;
-  }
-  *{box-sizing:border-box;}
-  html,body{
-    margin:0; padding:0;
-    background: var(--bg-deep);
-    color: var(--text-hi);
-    font-family: var(--grotesk);
-    -webkit-font-smoothing:antialiased;
-  }
-  .wrap{
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 28px 20px 60px;
-  }
-  .masthead{
-    display:flex; align-items:baseline; justify-content:space-between;
-    margin-bottom:22px; flex-wrap:wrap; gap:8px;
-  }
-  .masthead h1{
-    font-size:22px; font-weight:600; letter-spacing:.2px; margin:0;
-  }
-  .masthead .sub{
-    font-size:12.5px; color:var(--text-dim); font-family:var(--mono);
-    letter-spacing:.3px;
-  }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BCIT Ventilator Simulator</title>
+<link rel="shortcut icon" href="https://kb.bcit.ca/wp-content/uploads/2018/10/favicon.ico">
 
-  /* ---------- DEVICE ---------- */
-  .device{
-    background: linear-gradient(180deg,#26292c, #1d2023 6%);
-    border-radius: 14px;
-    padding: 14px;
-    box-shadow: 0 30px 60px -25px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
-    display:flex;
-    gap:10px;
-  }
-  .rail{
-    width:46px;
-    display:flex; flex-direction:column; gap:6px;
-    flex-shrink:0;
-    display: none;
-  }
-  .rail-btn{
-    background:var(--bg-tile);
-    border-radius:8px;
-    padding:7px 2px 8px;
-    text-align:center;
-    color:var(--text-dim);
-    font-size:8.5px;
-    line-height:1.3;
-    letter-spacing:.2px;
-  }
-  .rail-btn .ic{
-    font-size:15px; display:block; margin-bottom:2px; color:var(--text-hi);
-  }
-  .rail-btn.alarm{ background:#3a3417; }
-  .rail-btn.alarm .ic{ color:var(--amber); }
-  .rail-spacer{flex:1;}
-  .o2boost{
-    background:#101214; border-radius:8px; padding:8px 4px; text-align:center;
-  }
-  .o2boost .num{ font-family:var(--mono); font-size:19px; font-weight:600;}
-  .o2boost .lbl{ font-size:7px; color:var(--text-dim); letter-spacing:.3px;}
+<link rel="stylesheet" href="scripts/styles.css">
 
-  .screen-col{ flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;}
-
-  .topbar{
-    background: var(--bg-tile);
-    border-radius:8px;
-    padding:7px 12px;
-    display:flex; align-items:center; gap:14px;
-    font-size:10.5px; color:var(--text-dim);
-    font-family: var(--mono);
-    display: none;
-  }
-  .topbar .pbw{ color:var(--text-hi); }
-  .topbar .right{ margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--text-hi); }
-
-  .screen-main{
-    display:flex; gap:10px;
-  }
-  .scope{
-    background: var(--bg-screen);
-    border-radius:8px;
-    flex: 0 0 50%;
-    min-width:0;
-    padding:6px 4px 6px 2px;
-    position:relative;
-  }
-  canvas#scopeCanvas{
-    display:block; width:100%; height:340px;
-  }
-
-  .lungpanel{
-    background: var(--bg-screen);
-    border-radius:8px;
-    flex: 1 1 auto;
-    min-width:0;
-    padding:8px;
-    display:flex;
-    flex-direction:column;
-    position:relative;
-  }
-  .lungpanel .lp-title{
-    font-size:9.5px; color:var(--text-dim); font-family:var(--mono);
-    letter-spacing:.3px; margin-bottom:2px;
-  }
-  .lungpanel svg{
-    width:100%; height:100%; display:block;
-  }
-  .lungpanel .lp-readout{
-    position:absolute; bottom:8px; left:8px; right:8px;
-    display:flex; justify-content:space-between;
-    font-family:var(--mono); font-size:9.5px; color:var(--text-faint);
-    pointer-events:none;
-  }
-  .lungpanel .lp-readout b{ color:var(--text-dim); font-weight:600; }
-
-  #lungL, #lungR{
-    transition: transform 0.05s linear;
-  }
-  .alv{
-    fill: #e8978a;
-    stroke: #a8453a;
-    stroke-width: 0.8;
-    transition: transform 0.05s linear, fill 0.15s linear;
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-  #bronchL, #bronchR{
-    transition: stroke-width 0.4s ease, stroke 0.4s ease;
-  }
-  #lungSvg path[fill^="url"]{
-    transition: fill 0.4s ease;
-  }
-
-  .vars{
-    width:98px;
-    flex-shrink:0;
-    display:flex; flex-direction:column; gap:5px;
-  }
-  .vtile{
-    background:var(--bg-tile);
-    border-radius:8px;
-    padding:6px 9px 7px;
-    position:relative;
-  }
-  .vtile .lbl{ font-size:9.5px; color:var(--text-dim); font-family:var(--mono); letter-spacing:.3px;}
-  .vtile .val{
-    font-family:var(--mono); font-weight:700; font-size:25px; line-height:1.05;
-  }
-  .vtile .unit{ font-size:8.5px; color:var(--text-dim); }
-  .vtile.amber .val{ color:var(--amber); }
-  .vtile.green .val{ color:var(--green); }
-  .vtile.cyan .val{ color:var(--cyan); }
-  .vtile .range{ position:absolute; top:6px; right:8px; font-size:8px; color:var(--text-faint); text-align:right; font-family:var(--mono);}
-  .vtile .sub-row{ display:flex; justify-content:space-between; align-items:flex-end; margin-top:1px;}
-  .vti-mini{ font-size:14px; color:var(--text-dim); font-family:var(--mono); }
-
-  .settingsbar{
-    background:var(--bg-tile);
-    border-radius:8px;
-    padding:8px 10px;
-    display:flex; gap:8px; align-items:stretch;
-  }
-  .settile{
-    background:#101214;
-    border-radius:6px;
-    padding:6px 14px;
-    text-align:center;
-    min-width:64px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  .settile .lbl{ font-size:9px; color:var(--text-dim); font-family:var(--mono); letter-spacing:.2px;}
-  .settile .val{ font-size:19px; font-weight:700; font-family:var(--mono); color:var(--text-hi);}
-  .settile.flash{ animation: flashset .5s ease; }
-  @keyframes flashset{ 0%{ background:#2b2415;} 100%{background:#101214;} }
-  .chev-btn{
-    display:flex; align-items:center; justify-content:center;
-    color:var(--green); font-size:14px; width:18px;
-  }
-
-  /* ---------- CONTROL DECK ---------- */
-  .deck{
-    margin-top:30px;
-  }
-  .deck-head{
-    display:flex; align-items:baseline; gap:10px; margin-bottom:14px;
-  }
-  .deck-head h2{ font-size:15px; margin:0; font-weight:600; }
-  .deck-head .tag{
-    font-size:10.5px; color:var(--magenta); font-family:var(--mono);
-    background:rgba(232,51,110,.1); padding:2px 7px; border-radius:5px;
-    border:1px solid rgba(232,51,110,.25);
-  }
-
-  .deck-grid{
-    display:grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap:16px;
-  }
-  @media (max-width:880px){ .deck-grid{ grid-template-columns: 1fr; } }
-
-  .card{
-    background:var(--bg-panel);
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:18px 18px 14px;
-  }
-  .card h3{
-    font-size:11.5px; text-transform:uppercase; letter-spacing:.8px;
-    color:var(--text-dim); margin:0 0 14px 0; font-weight:600;
-  }
-
-  .modeselect{
-    display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;
-  }
-  .modebtn{
-    flex:1; min-width:120px;
-    background:var(--bg-tile);
-    border:1.5px solid var(--line);
-    color:var(--text-dim);
-    border-radius:9px;
-    padding:10px 8px;
-    font-family:var(--grotesk); font-weight:600; font-size:12.5px;
-    cursor:pointer; text-align:center;
-    transition: border-color .15s, color .15s, background .15s;
-  }
-  .modebtn:hover{ border-color:#52565b; color:var(--text-hi); }
-  .modebtn.active{
-    border-color: var(--magenta);
-    color: var(--text-hi);
-    background: linear-gradient(180deg, rgba(232,51,110,.16), rgba(232,51,110,.04));
-  }
-
-  .slider-row{
-    margin-bottom:13px;
-  }
-  .slider-row .top{
-    display:flex; justify-content:space-between; align-items:baseline;
-    margin-bottom:5px;
-  }
-  .slider-row label{ font-size:12.5px; color:var(--text-hi); font-weight:500;}
-  .slider-row .readout{
-    font-family:var(--mono); font-size:13px; color:var(--magenta); font-weight:700;
-  }
-  input[type=range]{
-    -webkit-appearance:none; appearance:none;
-    width:100%; height:5px;
-    background:var(--line);
-    border-radius:3px;
-    outline:none;
-  }
-  input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;
-    width:17px; height:17px; border-radius:50%;
-    background: var(--magenta);
-    border:2px solid #1d2023;
-    cursor:pointer;
-    margin-top:0px;
-    box-shadow:0 1px 4px rgba(0,0,0,.5);
-  }
-  input[type=range]::-moz-range-thumb{
-    width:17px; height:17px; border-radius:50%;
-    background: var(--magenta); border:2px solid #1d2023; cursor:pointer;
-  }
-  input[type=range].patient::-webkit-slider-thumb{ background: var(--cyan); }
-  input[type=range].patient::-moz-range-thumb{ background: var(--cyan); }
-  .slider-row .ticks{
-    display:flex; justify-content:space-between;
-    font-size:9px; color:var(--text-faint); font-family:var(--mono); margin-top:3px;
-  }
-
-  .divider{ height:1px; background:var(--line); margin:14px 0; }
-
-  .preset-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;}
-  .preset-btn{
-    background:transparent; border:1px solid var(--line); color:var(--text-dim);
-    border-radius:7px; padding:6px 10px; font-size:11.5px; cursor:pointer;
-    font-family:var(--grotesk);
-  }
-  .preset-btn:hover{ border-color:var(--cyan); color:var(--text-hi); }
-
-  .note{
-    font-size:11.5px; color:var(--text-dim); line-height:1.5; margin-top:10px;
-  }
-  .note b{ color:var(--text-hi); }
-
-  .legend{
-    display:flex; gap:14px; font-size:11px; color:var(--text-dim); margin-top:10px; flex-wrap:wrap;
-  }
-  .legend span{ display:inline-flex; align-items:center; gap:5px;}
-  .swatch{ width:9px; height:9px; border-radius:2px; display:inline-block;}
-
-  footer{
-    text-align:center; color:var(--text-faint); font-size:11px; margin-top:34px;
-    font-family:var(--mono);
-  }
-</style>
 </head>
 <body>
 <div class="wrap">
 
   <div class="masthead">
     <h1>Ventilator Simulator</h1>
-    <div class="sub">single-compartment lung model · live waveform synthesis</div>
+    <div class="sub">v0.1 2026.06.23</div>
   </div>
 
   <!-- ================= DEVICE MOCKUP ================= -->
   <div class="device">
-    <div class="rail">
-      <div class="rail-btn alarm"><span class="ic">&#128276;</span>Alarms</div>
-      <div class="rail-spacer"></div>
-      <div class="o2boost">
-        <div class="num">100</div>
-        <div class="lbl">O&#8322; BOOST</div>
-      </div>
-    </div>
 
     <div class="screen-col">
       <div class="topbar">
@@ -355,16 +34,67 @@
       <div class="modeselect">
         <button class="modebtn active" data-mode="VC">Volume Control</button>
         <button class="modebtn" data-mode="PC">Pressure Control</button>
-        <button class="modebtn" data-mode="PS">PS / CPAP</button>
+        <button class="modebtn" data-mode="PS">PSV</button>
+      </div>
+
+      <div class="note" id="modeNote">
+        <b>Volume Control:</b> you set tidal volume + rate; the vent delivers a fixed flow pattern and <b>pressure is the result</b> — watch Ppeak rise as compliance drops or resistance climbs.
       </div>
 
       <div class="screen-main">
         <div class="scope">
           <canvas id="scopeCanvas"></canvas>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--amber)"></span>Paw (airway pressure)</span>
+            <span><span class="swatch" style="background:var(--green)"></span>Flow</span>
+            <span><span class="swatch" style="background:var(--cyan)"></span>Volume</span>
+          </div>
         </div>
-        <div class="lungpanel">
+        
+        <div class="vars">
+          <div class="vtile amber">
+            <div class="range">40</div>
+            <div class="lbl">Ppeak</div>
+            <div class="val" id="vPpeak">0</div>
+            <div class="unit">cmH&#8322;O</div>
+          </div>
+          <div class="vtile green">
+            <div class="range">30<br><span style="opacity:.5">5</span></div>
+            <div class="lbl">RR</div>
+            <div class="val" id="vRR">0</div>
+            <div class="unit">b/min</div>
+          </div>
+          <div class="vtile cyan">
+            <div class="range">40.0<br><span style="opacity:.5">5.0</span></div>
+            <div class="lbl">MV&#7497;</div>
+            <div class="val" id="vMV" style="font-size:21px;">0.0</div>
+            <div class="unit">l/min</div>
+          </div>
+          <div class="vtile" style="padding-bottom:6px;">
+            <div class="lbl">VTi</div>
+            <div class="vti-mini" id="vVTi">0</div>
+          </div>
+          <div class="vtile cyan">
+            <div class="lbl">VTe</div>
+            <div class="val" id="vVTe" style="font-size:21px;">0</div>
+            <div class="unit">ml</div>
+          </div>
+        </div>
+
+         <div class="lungpanel">
           <div class="lp-title">PATIENT MODEL</div>
-          <svg id="lungSvg" viewBox="0 0 220 300" xmlns="http://www.w3.org/2000/svg">
+          
+          <div class="lp-readout">
+            <span>C: <b id="lpComp">50</b> mL/cmH&#8322;O</span>
+            <span>R: <b id="lpRes">10</b></span>
+          </div>
+
+          <!-- Anatomy visualizer -->
+          <svg id="lungSvg" 
+            width="300"
+            height="220"
+            viewBox="0 0 220 300" 
+            xmlns="http://www.w3.org/2000/svg">
             <defs>
               <radialGradient id="lungGradL" cx="35%" cy="30%" r="75%">
                 <stop offset="0%" stop-color="#ffb3a8"/>
@@ -433,39 +163,7 @@
               </g>
             </g>
           </svg>
-          <div class="lp-readout">
-            <span>C: <b id="lpComp">50</b> mL/cmH&#8322;O</span>
-            <span>R: <b id="lpRes">10</b></span>
-          </div>
-        </div>
-        <div class="vars">
-          <div class="vtile amber">
-            <div class="range">40</div>
-            <div class="lbl">Ppeak</div>
-            <div class="val" id="vPpeak">0</div>
-            <div class="unit">cmH&#8322;O</div>
-          </div>
-          <div class="vtile green">
-            <div class="range">30<br><span style="opacity:.5">5</span></div>
-            <div class="lbl">RR</div>
-            <div class="val" id="vRR">0</div>
-            <div class="unit">b/min</div>
-          </div>
-          <div class="vtile cyan">
-            <div class="range">40.0<br><span style="opacity:.5">5.0</span></div>
-            <div class="lbl">MV&#7497;</div>
-            <div class="val" id="vMV" style="font-size:21px;">0.0</div>
-            <div class="unit">l/min</div>
-          </div>
-          <div class="vtile" style="padding-bottom:6px;">
-            <div class="lbl">VTi</div>
-            <div class="vti-mini" id="vVTi">0</div>
-          </div>
-          <div class="vtile cyan">
-            <div class="lbl">VTe</div>
-            <div class="val" id="vVTe" style="font-size:21px;">0</div>
-            <div class="unit">ml</div>
-          </div>
+
         </div>
       </div>
 
@@ -547,12 +245,6 @@
             <input type="range" id="sBackupPC" min="5" max="35" step="1" value="15">
           </div>
         </div>
-
-        <div class="legend">
-          <span><span class="swatch" style="background:var(--amber)"></span>Paw (airway pressure)</span>
-          <span><span class="swatch" style="background:var(--green)"></span>Flow</span>
-          <span><span class="swatch" style="background:var(--cyan)"></span>Volume</span>
-        </div>
       </div>
 
       <!-- PATIENT CARD -->
@@ -585,9 +277,6 @@
           <button class="preset-btn" data-preset="spontaneous">Spontaneous effort</button>
         </div>
 
-        <div class="note" id="modeNote">
-          <b>Volume Control:</b> you set tidal volume + rate; the vent delivers a fixed flow pattern and <b>pressure is the result</b> — watch Ppeak rise as compliance drops or resistance climbs.
-        </div>
       </div>
 
     </div>
@@ -596,539 +285,6 @@
   <footer>Educational simulation only — not a medical device, not for clinical decision-making.</footer>
 </div>
 
-<script>
-(function(){
-  "use strict";
-
-  // ---------------- STATE ----------------
-  let mode = "VC"; // VC | PC | PS
-
-  const settings = {
-    VC: { fio2:40, peep:5.0, rr:16, tv:450 },
-    PC: { fio2:40, peep:8.0, rr:18, pc:15 },
-    PS: { fio2:30, peep:5.0, ps:5, backupRR:10, backupPC:15 }
-  };
-
-  const patient = { compliance:50, resistance:10, effort:0 };
-
-  // ---------------- DOM ----------------
-  const $ = id => document.getElementById(id);
-  const canvas = $("scopeCanvas");
-  const ctx = canvas.getContext("2d");
-
-  function fitCanvas(){
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-  window.addEventListener("resize", fitCanvas);
-
-  // ---------------- SIM CLOCK ----------------
-  const FS = 50;            // sim steps per second
-  const DT = 1/FS;
-  let simTime = 0;
-
-  // breath state machine
-  let phase = "insp";        // insp | exp
-  let phaseTime = 0;
-  let cycleStart = 0;
-
-  // live signals (current instantaneous values)
-  let Paw = 0, Flow = 0, Vol = 0;     // cmH2O, L/min, mL
-  let lastVolPeakIns = 0;             // VTi this breath
-  let lastVTe = 0, lastVTi = 0, lastPpeak = 0, lastRRdisplay = 16, lastMV = 0;
-  let mvAccumVol = 0, mvWindowStart = 0;
-
-  // history buffer for scrolling traces (3 panels)
-  const HIST_SECONDS = 8;
-  const histLen = HIST_SECONDS * FS;
-  const hPaw = new Float32Array(histLen);
-  const hFlow = new Float32Array(histLen);
-  const hVol = new Float32Array(histLen);
-  let histIdx = 0;
-
-  function pushHist(p,f,v){
-    hPaw[histIdx] = p; hFlow[histIdx] = f; hVol[histIdx] = v;
-    histIdx = (histIdx+1) % histLen;
-  }
-
-  // patient trigger detection (for PS mode autocycling on effort)
-  let triggered = false;
-
-  // captured exactly once at the insp->exp transition: the starting volume for this breath's exhale decay
-  let expStartVol = 0;
-
-  // ---------------- PHYSIOLOGY STEP ----------------
-  // Single compartment: Paw = PEEP + V/C + R*Flow  (Flow in L/s, V in L, R in cmH2O/L/s)
-  function step(){
-    const C = patient.compliance / 1000;   // mL/cmH2O -> L/cmH2O
-    const R = patient.resistance;          // cmH2O/L/s
-    const effort = patient.effort;         // 0-10
-
-    if(mode === "VC"){
-      const s = settings.VC;
-      const totalCycle = 60 / s.rr;
-      const ie = 0.5; // fraction inspiratory time (I:E ~ 1:2 -> insp ~ 0.33, but keep simple visual ~0.4)
-      const Ti = totalCycle * 0.35;
-      const Te = totalCycle - Ti;
-      const targetVL = s.tv/1000;
-
-      if(phase === "insp"){
-        // decelerating-ish square flow to mimic image: near-constant flow producing volume ramp
-        const peakFlowLs = targetVL / Ti * 1.15; // L/s, slightly higher than mean to taper at end
-        let f;
-        const frac = phaseTime/Ti;
-        if(frac < 0.85){
-          f = peakFlowLs;
-        } else {
-          f = peakFlowLs * (1 - (frac-0.85)/0.15);
-        }
-        Flow = Math.max(f,0);
-        Vol += Flow*DT;
-        if(Vol > targetVL) Vol = targetVL;
-        Paw = s.peep + Vol/C + R*Flow;
-        if(phaseTime >= Ti){
-          phase = "exp"; phaseTime = 0;
-          lastVTi = Math.round(Vol*1000);
-          expStartVol = Vol; // capture once at the moment exhalation begins
-        }
-      } else {
-        // passive exhalation: exponential decay from the fixed starting volume of this breath
-        const tau = R*C;
-        const v0 = expStartVol;
-        Vol = v0 * Math.exp(-phaseTime/Math.max(tau,0.05));
-        Flow = -(v0/Math.max(tau,0.05)) * Math.exp(-phaseTime/Math.max(tau,0.05));
-        Paw = s.peep + Vol/C;
-        if(phaseTime >= Te){
-          lastVTe = Math.round(v0*1000);
-          phase = "insp"; phaseTime = 0; Vol = 0;
-        }
-      }
-
-    } else if(mode === "PC"){
-      const s = settings.PC;
-      const totalCycle = 60 / s.rr;
-      const Ti = totalCycle * 0.35;
-      const Te = totalCycle - Ti;
-      const Ptarget = s.peep + s.pc;
-
-      if(phase === "insp"){
-        const riseTau = 0.06;
-        Paw = Ptarget - (Ptarget - s.peep)*Math.exp(-phaseTime/riseTau);
-        const drive = (Paw - s.peep - Vol/C);
-        Flow = Math.max(drive / Math.max(R,1), 0);
-        Vol += Flow*DT;
-        if(phaseTime >= Ti){
-          phase = "exp"; phaseTime = 0;
-          lastVTi = Math.round(Vol*1000);
-          expStartVol = Vol;
-        }
-      } else {
-        const tau = R*C;
-        const v0 = expStartVol;
-        Vol = v0*Math.exp(-phaseTime/Math.max(tau,0.05));
-        Flow = -(v0/Math.max(tau,0.05))*Math.exp(-phaseTime/Math.max(tau,0.05));
-        Paw = s.peep + Vol/C;
-        if(phaseTime >= Te){
-          lastVTe = Math.round(v0*1000);
-          phase = "insp"; phaseTime = 0; Vol = 0;
-        }
-      }
-
-    } else if(mode === "PS"){
-      const s = settings.PS;
-      const Ptarget = s.peep + s.ps;
-      // spontaneous-ish cycling: rate driven by effort (more effort -> faster, more variable)
-      const baseRR = effort > 0 ? Math.min(28, s.backupRR*0.6 + effort*1.6) : s.backupRR;
-      const totalCycle = 60/Math.max(baseRR,4);
-      const Ti = totalCycle * 0.32;
-      const Te = totalCycle - Ti;
-
-      if(phase === "insp"){
-        const riseTau = 0.05;
-        const pcEff = effort>0 ? s.ps : s.ps; // PS magnitude fixed by setting
-        Paw = Ptarget - (Ptarget - s.peep)*Math.exp(-phaseTime/riseTau);
-        const drive = (Paw - s.peep - Vol/C);
-        Flow = Math.max(drive / Math.max(R,1), 0) * (effort>0 ? 1.0 : 0.9);
-        Vol += Flow*DT;
-        // early termination (flow cycle-off) when flow decays - simplified by Ti
-        if(phaseTime >= Ti){
-          phase = "exp"; phaseTime = 0;
-          lastVTi = Math.round(Vol*1000);
-          expStartVol = Vol;
-        }
-      } else {
-        const tau = R*C;
-        const v0 = expStartVol;
-        Vol = v0*Math.exp(-phaseTime/Math.max(tau,0.05));
-        Flow = -(v0/Math.max(tau,0.05))*Math.exp(-phaseTime/Math.max(tau,0.05));
-        // small negative deflection at end-exhalation if effort>0 (patient trigger)
-        let trigDip = 0;
-        if(effort>0){
-          const triggerWindow = Te*0.85;
-          if(phaseTime > triggerWindow){
-            const tFrac = (phaseTime-triggerWindow)/(Te-triggerWindow+1e-6);
-            trigDip = -0.3*effort*Math.sin(Math.min(tFrac,1)*Math.PI);
-          }
-        }
-        Paw = s.peep + Vol/C + trigDip;
-        if(phaseTime >= Te){
-          lastVTe = Math.round(v0*1000);
-          phase = "insp"; phaseTime = 0; Vol = 0;
-        }
-      }
-    }
-
-    phaseTime += DT;
-    simTime += DT;
-
-  }
-
-  // We track Ppeak per-breath separately and reset cleanly:
-  let breathPpeak = 0;
-  let prevPhase = "insp";
-  let lastBreathTimes = [];
-
-  function trackAndDetectBoundary(){
-    if(phase==="insp"){
-      breathPpeak = Math.max(breathPpeak, Paw);
-    }
-    const expStarted = (prevPhase==="insp" && phase==="exp");
-    const inspStarted = (prevPhase==="exp" && phase==="insp");
-
-    if(expStarted){
-      lastPpeak = breathPpeak;
-      breathPpeak = 0;
-    }
-    if(inspStarted){
-      lastBreathTimes.push(simTime);
-      if(lastBreathTimes.length>6) lastBreathTimes.shift();
-      if(lastBreathTimes.length>=2){
-        const intervals = [];
-        for(let i=1;i<lastBreathTimes.length;i++) intervals.push(lastBreathTimes[i]-lastBreathTimes[i-1]);
-        const avg = intervals.reduce((a,b)=>a+b,0)/intervals.length;
-        lastRRdisplay = Math.round(60/avg);
-      }
-    }
-    prevPhase = phase;
-  }
-
-  // ---------------- MAIN LOOP ----------------
-  let lastFrameWall = performance.now();
-  let accum = 0;
-
-  function loop(){
-    const now = performance.now();
-    let dtWall = (now - lastFrameWall)/1000;
-    lastFrameWall = now;
-    dtWall = Math.min(dtWall, 0.1);
-    accum += dtWall;
-
-    while(accum >= DT){
-      step();
-      trackAndDetectBoundary();
-      pushHist(Paw, Flow*60, Vol*1000); // flow displayed L/min, vol displayed mL
-      accum -= DT;
-    }
-
-    render();
-    updateReadouts();
-    updateLungVisual();
-    requestAnimationFrame(loop);
-  }
-
-  // ---------------- RENDER ----------------
-  function render(){
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    ctx.clearRect(0,0,w,h);
-
-    const panelH = h/3;
-    drawPanel(0, panelH, hPaw, scaleFor("paw"), "#e8a43d", "Paw cmH\u2082O", scaleLabels("paw"));
-    drawPanel(panelH, panelH, hFlow, scaleFor("flow"), "#5fcf86", "FLOW l/min", scaleLabels("flow"));
-    drawPanel(panelH*2, panelH, hVol, scaleFor("vol"), "#5cc9da", "V ml", scaleLabels("vol"), true);
-
-    // divider lines
-    ctx.strokeStyle = "rgba(255,255,255,0.06)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0,panelH); ctx.lineTo(w,panelH);
-    ctx.moveTo(0,panelH*2); ctx.lineTo(w,panelH*2);
-    ctx.stroke();
-  }
-
-  function scaleFor(kind){
-    if(kind==="paw") return { min:-5, max: 40 };
-    if(kind==="flow") return { min:-100, max:100 };
-    if(kind==="vol") return { min:0, max: Math.max(600, settingsTVorPC()*1.3) };
-  }
-  function settingsTVorPC(){
-    if(mode==="VC") return settings.VC.tv;
-    if(mode==="PC") return settings.PC.pc*40; // rough vol scale guess
-    return 500;
-  }
-  function scaleLabels(kind){
-    const sc = scaleFor(kind);
-    return { top: Math.round(sc.max), bottom: Math.round(sc.min) };
-  }
-
-  function drawPanel(yTop, panelH, hist, scale, color, label, labels, baseline0){
-    const w = canvas.clientWidth;
-    const padTop = 14, padBottom = 6;
-    const innerH = panelH - padTop - padBottom;
-
-    function yFor(val){
-      const t = (val - scale.min) / (scale.max - scale.min);
-      return yTop + padTop + innerH * (1-t);
-    }
-
-    // gridline at zero / baseline
-    ctx.strokeStyle = "rgba(255,255,255,0.10)";
-    ctx.lineWidth = 1;
-    const zeroY = yFor(baseline0 ? scale.min : 0);
-    ctx.beginPath(); ctx.moveTo(0,zeroY); ctx.lineTo(w,zeroY); ctx.stroke();
-
-    // trace
-    const n = histLen;
-    const visibleSeconds = HIST_SECONDS;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    for(let i=0;i<n;i++){
-      const idx = (histIdx + i) % n; // oldest..newest across buffer
-      const x = (i/n) * w;
-      const y = yFor(hist[idx]);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-
-    // label
-    ctx.fillStyle = "#8c9094";
-    ctx.font = "10px IBM Plex Mono, monospace";
-    ctx.fillText(String(labels.top), 4, yTop+11);
-    ctx.fillText(String(labels.bottom), 4, yTop+panelH-3);
-    ctx.fillStyle = "#aeb1b4";
-    ctx.font = "11px IBM Plex Mono, monospace";
-    ctx.fillText(label, 22, yTop+11);
-  }
-
-  // ---------------- READOUTS ----------------
-  function updateReadouts(){
-    $("vPpeak").textContent = lastPpeak>0 ? lastPpeak.toFixed(0) : "--";
-    $("vRR").textContent = lastRRdisplay;
-    const mv = (lastVTe/1000) * lastRRdisplay;
-    $("vMV").textContent = mv.toFixed(1);
-    $("vVTi").textContent = lastVTi || "--";
-    $("vVTe").textContent = lastVTe || "--";
-  }
-
-  // ---------------- LUNG VISUAL ----------------
-  const lungL = $("lungL"), lungR = $("lungR");
-  const bronchL = $("bronchL"), bronchR = $("bronchR");
-  const alvCircles = document.querySelectorAll(".alv");
-  let lpCompLast = null, lpResLast = null;
-
-  function updateLungVisual(){
-    // Vol is current instantaneous lung volume in liters; normalize against a nominal max breath size
-    const nominalMaxL = 0.8; // 800 mL ~ visual full-scale
-    const fillFrac = Math.max(0, Math.min(1, Vol / nominalMaxL));
-
-    // compliance affects how much the LUNG SHAPE itself expands per mL (stiff lungs barely move)
-    // map compliance 10-100 -> expansion gain 0.55 - 1.15
-    const C = patient.compliance;
-    const expGain = 0.55 + (Math.min(Math.max(C,10),100) - 10) / 90 * 0.6;
-
-    const lungScale = 1 + fillFrac * 0.22 * expGain;
-    const alvScale  = 1 + fillFrac * 1.35 * expGain; // alveoli are the dramatic, legible part
-
-    lungL.style.transform = `scale(${lungScale.toFixed(4)})`;
-    lungR.style.transform = `scale(${lungScale.toFixed(4)})`;
-    const brightness = 1 + fillFrac * 0.12;
-    lungL.style.filter = `brightness(${brightness.toFixed(3)})`;
-    lungR.style.filter = `brightness(${brightness.toFixed(3)})`;
-
-    alvCircles.forEach(c=>{
-      c.style.transform = `scale(${alvScale.toFixed(4)})`;
-    });
-
-    // resistance -> visually narrow / thicken & darken the airway (bronchi)
-    const R = patient.resistance;
-    const rFrac = Math.max(0, Math.min(1, (R - 4) / 36)); // 4 normal -> 40 severe
-    const bronchWidth = 6 - rFrac * 3.2; // narrows as resistance climbs
-    const bronchColor = rFrac > 0.5 ? "#8a5147" : "#c98a78";
-    [bronchL, bronchR].forEach(b=>{
-      b.setAttribute("stroke-width", bronchWidth.toFixed(1));
-      b.style.stroke = bronchColor;
-    });
-
-    // compliance -> lung tissue color (stiff/fibrotic lungs read denser & darker)
-    if(C !== lpCompLast){
-      const stiffFrac = Math.max(0, Math.min(1, (100 - C) / 90)); // 0 normal/floppy -> 1 very stiff
-      const lo = [186, 92, 80];   // darker stiffened red
-      const hi = [255, 179, 168]; // healthy light pink
-      const mix = lo.map((v,i)=> Math.round(v + (hi[i]-v)*(1-stiffFrac)));
-      const col = `rgb(${mix[0]},${mix[1]},${mix[2]})`;
-      document.querySelectorAll('#lungL path[fill^="url"], #lungR path[fill^="url"]').forEach(p=>{
-        p.style.fill = col;
-      });
-      $("lpComp").textContent = C;
-      lpCompLast = C;
-    }
-    if(R !== lpResLast){
-      $("lpRes").textContent = R;
-      lpResLast = R;
-    }
-
-    // Paw overdistension cue: alveoli flush warning-amber if pressure climbs high while near full inflation
-    const overDist = Paw > 30 && fillFrac > 0.6;
-    alvCircles.forEach(c=>{
-      c.style.fill = overDist ? "#e0a23d" : "#e8978a";
-    });
-  }
-
-  // ---------------- SETTINGS BAR (device bottom strip) ----------------
-  function renderSettingsBar(){
-    const bar = $("settingsBar");
-    let tiles = [];
-    if(mode==="VC"){
-      const s = settings.VC;
-      tiles = [
-        ["O\u2082 conc.", s.fio2],
-        ["PEEP", s.peep.toFixed(1)],
-        ["RR", s.rr],
-        ["Tidal volume", s.tv],
-      ];
-    } else if(mode==="PC"){
-      const s = settings.PC;
-      tiles = [
-        ["O\u2082 conc.", s.fio2],
-        ["PEEP", s.peep.toFixed(1)],
-        ["RR", s.rr],
-        ["PC above\nPEEP", s.pc],
-      ];
-    } else {
-      const s = settings.PS;
-      tiles = [
-        ["O\u2082 conc.", s.fio2],
-        ["PEEP", s.peep.toFixed(1)],
-        ["PS above\nPEEP", s.ps],
-        ["Backup RR", s.backupRR],
-        ["Backup PC\nabove PEEP", s.backupPC],
-      ];
-    }
-    bar.innerHTML = tiles.map(t=>(
-      `<div class="settile" data-key="${t[0]}"><div class="lbl">${t[0].replace("\n","<br>")}</div><div class="val">${t[1]}</div></div>`
-    )).join('') ;
-  }
-
-  function flashSettingsBar(){
-    const bar = $("settingsBar");
-    bar.querySelectorAll(".settile").forEach(el=>{
-      el.classList.remove("flash");
-      void el.offsetWidth;
-      el.classList.add("flash");
-    });
-  }
-
-  const modeNotes = {
-    VC: "<b>Volume Control:</b> you set tidal volume + rate; the vent delivers a fixed flow pattern and <b>pressure is the result</b> — watch Ppeak rise as compliance drops or resistance climbs.",
-    PC: "<b>Pressure Control:</b> you set a pressure target above PEEP; the vent holds that pressure and <b>volume is the result</b> — watch VTe fall if compliance drops, even though pressure stays fixed.",
-    PS: "<b>PS/CPAP:</b> the patient triggers each breath; the vent only supports it with a fixed pressure boost. Raise <b>patient effort</b> to see spontaneous triggering, or set effort to 0 to see backup (apnea) breaths take over."
-  };
-
-  // ---------------- WIRE UP UI ----------------
-  function switchMode(m){
-    mode = m;
-    document.querySelectorAll(".modebtn").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
-    $("vcGroup").style.display = m==="VC" ? "" : "none";
-    $("pcGroup").style.display = m==="PC" ? "" : "none";
-    $("psGroup").style.display = m==="PS" ? "" : "none";
-
-    renderSettingsBar();
-    $("modeNote").innerHTML = modeNotes[m];
-    // reset breath state for a clean transition
-    phase = "insp"; phaseTime = 0; Vol = 0; breathPpeak = 0; expStartVol = 0;
-    lastVTe = 0; lastVTi = 0; lastBreathTimes = [];
-  }
-
-  document.querySelectorAll(".modebtn").forEach(btn=>{
-    btn.addEventListener("click", ()=> switchMode(btn.dataset.mode));
-  });
-
-  function bindSlider(sliderId, readoutId, store, key, isFloat){
-    const el = $(sliderId);
-    el.addEventListener("input", ()=>{
-      const v = isFloat ? parseFloat(el.value) : parseInt(el.value,10);
-      store[key] = v;
-      $(readoutId).textContent = isFloat ? v.toFixed(1) : v;
-      renderSettingsBar();
-      flashSettingsBar();
-    });
-  }
-
-  // VC
-  bindSlider("sFiO2","rFiO2", settings.VC, "fio2", false);
-  bindSlider("sPEEPvc","rPEEPvc", settings.VC, "peep", true);
-  bindSlider("sRRvc","rRRvc", settings.VC, "rr", false);
-  bindSlider("sTV","rTV", settings.VC, "tv", false);
-
-  // PC
-  bindSlider("sFiO2pc","rFiO2pc", settings.PC, "fio2", false);
-  bindSlider("sPEEPpc","rPEEPpc", settings.PC, "peep", true);
-  bindSlider("sRRpc","rRRpc", settings.PC, "rr", false);
-  bindSlider("sPC","rPC", settings.PC, "pc", false);
-
-  // PS
-  bindSlider("sFiO2ps","rFiO2ps", settings.PS, "fio2", false);
-  bindSlider("sPEEPps","rPEEPps", settings.PS, "peep", true);
-  bindSlider("sPS","rPS", settings.PS, "ps", false);
-  bindSlider("sBackupRR","rBackupRR", settings.PS, "backupRR", false);
-  bindSlider("sBackupPC","rBackupPC", settings.PS, "backupPC", false);
-
-  // Patient
-  function bindPatient(sliderId, readoutId, key, fmt){
-    const el = $(sliderId);
-    el.addEventListener("input", ()=>{
-      const v = parseFloat(el.value);
-      patient[key] = v;
-      $(readoutId).textContent = fmt ? fmt(v) : v;
-    });
-  }
-  bindPatient("sComp","rComp","compliance");
-  bindPatient("sRes","rRes","resistance");
-  bindPatient("sEffort","rEffort","effort", v => v===0 ? "0 (none)" : v);
-
-  document.querySelectorAll(".preset-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const p = btn.dataset.preset;
-      if(p==="normal"){ setPatient(50,10,0); }
-      if(p==="ards"){ setPatient(22,16,0); }
-      if(p==="copd"){ setPatient(60,32,0); }
-      if(p==="spontaneous"){ setPatient(50,10,6); if(mode!=="PS") switchMode("PS"); document.querySelector('[data-mode="PS"]').classList.add("active"); document.querySelector('[data-mode="VC"]').classList.remove("active"); document.querySelector('[data-mode="PC"]').classList.remove("active"); }
-    });
-  });
-  function setPatient(c,r,e){
-    patient.compliance=c; patient.resistance=r; patient.effort=e;
-    $("sComp").value=c; $("rComp").textContent=c;
-    $("sRes").value=r; $("rRes").textContent=r;
-    $("sEffort").value=e; $("rEffort").textContent= e===0?"0 (none)":e;
-  }
-
-  // clock
-  function tickClock(){
-    const d = new Date();
-    $("clock").textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-  }
-  setInterval(tickClock, 1000*30);
-  tickClock();
-
-  // init
-  fitCanvas();
-  renderSettingsBar();
-  requestAnimationFrame(loop);
-
-})();
-</script>
+<script src="scripts/vent-scripts.js"></script>
 </body>
 </html>
