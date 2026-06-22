@@ -39,7 +39,7 @@ body {
 
 .masthead {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     margin-bottom: 18px;
     flex-wrap: wrap;
