@@ -10,7 +10,26 @@
     PS: { fio2:30, peep:5.0, ps:5, backupRR:10, backupPC:15 }
   };
 
-  const patient = { compliance:50, resistance:10, effort:0 };
+  const patient = { compliance:50, resistance:10, effort:0, leftCollapsed:false, rightCollapsed:false };
+
+  // ---------------- GAS EXCHANGE CONSTANTS ----------------
+  const GAS = {
+    Patm: 760,      // mmHg, atmospheric pressure
+    PH2O: 47,       // mmHg, water vapor pressure at body temp
+    RQ: 0.8,        // respiratory quotient
+    VCO2: 200,      // mL/min, resting adult CO2 production
+    deadSpace: 0.15 // L, anatomic dead space
+  };
+
+  // live gas exchange signals, recomputed once per completed breath
+  let spo2 = 98, paO2 = 95, paCO2 = 40, shuntFrac = 0;
+
+  // ---------------- SHARED PATIENT-DERIVED FRACTIONS ----------------
+  // Computed once per frame in derivePatientFractions() and reused by the SVG
+  // visual, the Unity bridge snapshot, and the gas exchange calculation --
+  // avoids recomputing the same numbers three different ways in three places.
+  let fillFrac = 0, expGain = 0, stiffFrac = 0, rFrac = 0;
+  let alvScale = 0, bronchioleScale = 1, overDist = false;
 
   // ---------------- DOM ----------------
   const $ = id => document.getElementById(id);
@@ -61,10 +80,26 @@
   // captured exactly once at the insp->exp transition: the starting volume for this breath's exhale decay
   let expStartVol = 0;
 
+  // ---------------- COLLAPSED LUNG (effective compliance) ----------------
+  // Two lungs in parallel roughly add their compliance. Taking one offline
+  // (pneumothorax, complete atelectasis, mainstem intubation) doesn't change
+  // patient.compliance itself -- it changes how much of it is still usable.
+  // This is what makes Ppeak rise (VC) / VTe fall (PC) with a collapsed lung,
+  // same mechanism as any other compliance-lowering condition already modeled.
+  // Right lung is given the larger share (~55/45) to reflect its larger normal
+  // volume (left lung is smaller due to the cardiac notch).
+  function effectiveCompliance(){
+    const C = patient.compliance / 1000; // mL/cmH2O -> L/cmH2O
+    if (patient.leftCollapsed && patient.rightCollapsed) return C * 0.1; // both down -- extreme edge case, not zero to avoid divide-by-zero blowups
+    if (patient.rightCollapsed) return C * 0.45; // only left (smaller) lung ventilating
+    if (patient.leftCollapsed)  return C * 0.55; // only right (larger) lung ventilating
+    return C;
+  }
+
   // ---------------- PHYSIOLOGY STEP ----------------
   // Single compartment: Paw = PEEP + V/C + R*Flow  (Flow in L/s, V in L, R in cmH2O/L/s)
   function step(){
-    const C = patient.compliance / 1000;   // mL/cmH2O -> L/cmH2O
+    const C = effectiveCompliance();       // L/cmH2O, accounts for any collapsed lung
     const R = patient.resistance;          // cmH2O/L/s
     const effort = patient.effort;         // 0-10
 
@@ -202,6 +237,7 @@
     if(expStarted){
       lastPpeak = breathPpeak;
       breathPpeak = 0;
+      updateGasExchange();
     }
     if(inspStarted){
       lastBreathTimes.push(simTime);
@@ -233,7 +269,7 @@
       pushHist(Paw, Flow*60, Vol*1000); // flow displayed L/min, vol displayed mL
       accum -= DT;
     }
-
+    derivePatientFractions();
     render();
     updateReadouts();
     updateLungVisual();
@@ -314,6 +350,61 @@
     ctx.fillText(label, 22, yTop+11);
   }
 
+  // ---------------- GAS EXCHANGE ----------------
+  // FiO2 does NOT affect lung mechanics (compliance/resistance/inflation) --
+  // physiologically it only affects how much oxygen is available to diffuse
+  // into blood. This is a deliberately simplified model (illustrative, not a
+  // clinical calculator) that ties oxygenation to variables the sim already
+  // tracks, so a collapsed lung / bad compliance / bad resistance naturally
+  // produces worse oxygenation without needing separate new sliders.
+  function updateGasExchange(){
+    const vtL = lastVTe / 1000;
+    const rr = lastRRdisplay || 1;
+    const VA_Lmin = Math.max(rr * (vtL - GAS.deadSpace), 0.1); // alveolar minute ventilation
+
+    // Shunt: blood passing alveoli that aren't being ventilated. Driven by
+    // stiffness (ARDS-like), some contribution from resistance, and a large
+    // fixed penalty if a whole lung is offline -- this is what makes FiO2
+    // show diminishing returns in bad lungs, a real and important teaching point.
+    shuntFrac = Math.min(0.6,
+      stiffFrac * 0.4 +
+      rFrac * 0.15 +
+      ((patient.leftCollapsed || patient.rightCollapsed) ? 0.25 : 0)
+    );
+
+    // CO2 is driven by ventilation, NOT FiO2 -- keeping these independent
+    // guards against the common misconception that "more O2 = less CO2".
+    paCO2 = 0.863 * GAS.VCO2 / VA_Lmin; // alveolar ventilation equation
+    paCO2 = Math.min(Math.max(paCO2, 15), 120);
+
+    // Alveolar gas equation, then reduce by shunt to get an effective PaO2.
+    const fio2Frac = settings[mode].fio2 / 100;
+    const PAO2 = fio2Frac * (GAS.Patm - GAS.PH2O) - paCO2 / GAS.RQ;
+    paO2 = Math.min(Math.max(PAO2 * (1 - shuntFrac), 20), 650);
+
+    // Severinghaus approximation of the oxyhemoglobin dissociation curve.
+    spo2 = 100 / ((23400 / (Math.pow(paO2,3) + 150*paO2)) + 1);
+    spo2 = Math.min(Math.max(spo2, 40), 100);
+  }
+
+  // ---------------- SHARED PATIENT-DERIVED FRACTIONS ----------------
+  // Single source of truth for the numbers driven by compliance/resistance/
+  // volume -- consumed by updateLungVisual() (SVG) and the Unity bridge
+  // snapshot alike, so both visualizations always agree with each other.
+  function derivePatientFractions(){
+    const C = patient.compliance;
+    const R = patient.resistance;
+    const nominalMaxL = 0.8; // 800 mL ~ visual full-scale
+
+    fillFrac = Math.max(0, Math.min(1, Vol / nominalMaxL));
+    expGain = 0.55 + (Math.min(Math.max(C,10),100) - 10) / 90 * 0.6;
+    stiffFrac = Math.max(0, Math.min(1, (100 - C) / 90));
+    rFrac = Math.max(0, Math.min(1, (R - 4) / 36));
+    alvScale = 1 + fillFrac * 1.35 * expGain;
+    bronchioleScale = 1 - rFrac * 0.53;
+    overDist = Paw > 30 && fillFrac > 0.6;
+  }
+
   // ---------------- READOUTS ----------------
   function updateReadouts(){
     $("vPpeak").textContent = lastPpeak>0 ? lastPpeak.toFixed(0) : "--";
@@ -331,21 +422,26 @@
   let lpCompLast = null, lpResLast = null;
 
   function updateLungVisual(){
-    // Vol is current instantaneous lung volume in liters; normalize against a nominal max breath size
-    const nominalMaxL = 0.8; // 800 mL ~ visual full-scale
-    const fillFrac = Math.max(0, Math.min(1, Vol / nominalMaxL));
 
-    // compliance affects how much the LUNG SHAPE itself expands per mL (stiff lungs barely move)
-    // map compliance 10-100 -> expansion gain 0.55 - 1.15
+    // check if lung SVG is visible, if not skip updating it (Unity bridge will still update)
+    const parentSvg = lungL?.closest("svg");
+    if (!lungL || (parentSvg && getComputedStyle(parentSvg).display === "none")) return;
+    /* TODO : update 2d or 3d */ 
+
+    // NOTE: fillFrac, expGain, stiffFrac, rFrac, alvScale, bronchioleScale,
+    // overDist are all computed once per frame in derivePatientFractions()
+    // (called from loop(), before this runs) -- this function only reads
+    // them now, it doesn't (re)compute its own copies. This keeps the SVG
+    // and the Unity bridge snapshot always in agreement.
+
     const C = patient.compliance;
-    const expGain = 0.55 + (Math.min(Math.max(C,10),100) - 10) / 90 * 0.6;
-
-    const lungScale = 1 + fillFrac * 0.22 * expGain;
-    const alvScale  = 1 + fillFrac * 1.35 * expGain; // alveoli are the dramatic, legible part
-
-    lungL.style.transform = `scale(${lungScale.toFixed(4)})`;
-    lungR.style.transform = `scale(${lungScale.toFixed(4)})`;
+    const R = patient.resistance;
+    const lungScale = 1 + fillFrac * 0.22 * expGain; console.log("lungScale", lungScale);
     const brightness = 1 + fillFrac * 0.12;
+    
+    lungL.style.transform = `scale(${lungScale.toFixed(4)})`; 
+    lungR.style.transform = `scale(${lungScale.toFixed(4)})`;
+    
     lungL.style.filter = `brightness(${brightness.toFixed(3)})`;
     lungR.style.filter = `brightness(${brightness.toFixed(3)})`;
 
@@ -354,8 +450,8 @@
     });
 
     // resistance -> visually narrow / thicken & darken the airway (bronchi)
-    const R = patient.resistance;
-    const rFrac = Math.max(0, Math.min(1, (R - 4) / 36)); // 4 normal -> 40 severe
+    // bronchioleScale (0-1, 1=clear) is the Unity-facing version of this same
+    // number; bronchWidth here is just its SVG stroke-width rendering.
     const bronchWidth = 6 - rFrac * 3.2; // narrows as resistance climbs
     const bronchColor = rFrac > 0.5 ? "#8a5147" : "#c98a78";
     [bronchL, bronchR].forEach(b=>{
@@ -365,7 +461,6 @@
 
     // compliance -> lung tissue color (stiff/fibrotic lungs read denser & darker)
     if(C !== lpCompLast){
-      const stiffFrac = Math.max(0, Math.min(1, (100 - C) / 90)); // 0 normal/floppy -> 1 very stiff
       const lo = [186, 92, 80];   // darker stiffened red
       const hi = [255, 179, 168]; // healthy light pink
       const mix = lo.map((v,i)=> Math.round(v + (hi[i]-v)*(1-stiffFrac)));
@@ -382,10 +477,14 @@
     }
 
     // Paw overdistension cue: alveoli flush warning-amber if pressure climbs high while near full inflation
-    const overDist = Paw > 30 && fillFrac > 0.6;
     alvCircles.forEach(c=>{
       c.style.fill = overDist ? "#e0a23d" : "#e8978a";
     });
+
+    // NOTE: the SVG is a flat 2D fallback and doesn't attempt to render a
+    // collapsed-lung state distinctly (no separate "collapsed" artwork) --
+    // that distinction is only meaningful in the 3D Unity model, which has
+    // a dedicated collapsed-lung morph target. See Unity bridge / README.
   }
 
   // ---------------- SETTINGS BAR (device bottom strip) ----------------
@@ -499,6 +598,16 @@
   bindPatient("sComp","rComp","compliance");
   bindPatient("sRes","rRes","resistance");
   bindPatient("sEffort","rEffort","effort", v => v===0 ? "0 (none)" : v);
+
+  // checkboxes for collapsed lungs
+  function bindCheckbox(id, key){
+    const el = $(id);
+    el.addEventListener("change", () => {
+      patient[key] = el.checked;
+      // mutually-exclusive-ish safety: both collapsed is an extreme edge case, allow but no special guard needed
+    });
+  }
+  bindCheckbox("chkRightCollapsed", "rightCollapsed");
 
   document.querySelectorAll(".preset-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{

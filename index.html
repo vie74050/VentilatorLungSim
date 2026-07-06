@@ -47,10 +47,10 @@
             <span>R: <b id="lpRes">10</b></span>
           </div>
 
-          <!-- Anatomy visualizer -->
+          <!-- 2D Anatomy visualizer placeholder -->
           <svg id="lungSvg" 
-            width="300"
-            height="220"
+            width="400"
+            height="320"
             viewBox="0 0 220 300" 
             xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -122,6 +122,7 @@
             </g>
           </svg>
 
+          <div id="unityContainer" style="display:none;"><!-- Unity canvas mounts here --></div>
         </div>
 
         <div class="scope">
@@ -248,6 +249,11 @@
       <!-- PATIENT CARD -->
       <div class="card">
         <h3>Simulated patient — lung mechanics</h3>
+
+        <div class="slider-row">
+          <input type="checkbox" id="chkRightCollapsed">
+          <label for="chkRightCollapsed">Right lung collapsed</label>
+        </div>
 
         <div class="slider-row">
           <div class="top"><label>Compliance (C)</label><span class="readout"><span id="rComp">50</span> mL/cmH&#8322;O</span></div>
