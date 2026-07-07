@@ -269,11 +269,46 @@
       pushHist(Paw, Flow*60, Vol*1000); // flow displayed L/min, vol displayed mL
       accum -= DT;
     }
-    derivePatientFractions();
+
     render();
     updateReadouts();
-    updateLungVisual();
+
+    derivePatientFractions(); // single source of truth for both visualizations below
+
+    // While Unity isn't ready yet, the SVG is the visible panel -- paint it.
+    // Once Unity has taken over (VentUnityBridge.isReady()), the SVG is
+    // display:none, so we skip its DOM writes entirely.
+    if (!window.VentUnityBridge || !window.VentUnityBridge.isReady()){
+      updateLungVisual();
+    }
+
+    if (window.VentUnityBridge){
+      window.VentUnityBridge.tick(dtWall, buildUnitySnapshot());
+    }
+
     requestAnimationFrame(loop);
+  }
+
+  // Plain snapshot object handed to the Unity bridge every frame -- the
+  // bridge itself decides whether it's worth actually sending (throttle +
+  // send-on-change gating live entirely in unity-bridge.js).
+  function buildUnitySnapshot(){
+    return {
+      fillFrac: fillFrac,
+      expGain: expGain,
+      stiffFrac: stiffFrac,
+      rFrac: rFrac,
+      alvScale: alvScale,
+      bronchioleScale: bronchioleScale,
+      overDist: overDist,
+      phase: phase,
+      effort: patient.effort,
+      spo2: spo2,
+      paCO2: paCO2,
+      shuntFrac: shuntFrac,
+      leftCollapsed: patient.leftCollapsed,
+      rightCollapsed: patient.rightCollapsed
+    };
   }
 
   // ---------------- RENDER ----------------
@@ -413,6 +448,10 @@
     $("vMV").textContent = mv.toFixed(1);
     $("vVTi").textContent = lastVTi || "--";
     $("vVTe").textContent = lastVTe || "--";
+    const spo2El = $("vSpO2");
+    if(spo2El) spo2El.textContent = spo2.toFixed(0);
+    const co2El = $("vPaCO2");
+    if(co2El) co2El.textContent = paCO2.toFixed(0);
   }
 
   // ---------------- LUNG VISUAL ----------------
@@ -422,26 +461,19 @@
   let lpCompLast = null, lpResLast = null;
 
   function updateLungVisual(){
-
-    // check if lung SVG is visible, if not skip updating it (Unity bridge will still update)
-    const parentSvg = lungL?.closest("svg");
-    if (!lungL || (parentSvg && getComputedStyle(parentSvg).display === "none")) return;
-    /* TODO : update 2d or 3d */ 
-
     // NOTE: fillFrac, expGain, stiffFrac, rFrac, alvScale, bronchioleScale,
     // overDist are all computed once per frame in derivePatientFractions()
     // (called from loop(), before this runs) -- this function only reads
     // them now, it doesn't (re)compute its own copies. This keeps the SVG
     // and the Unity bridge snapshot always in agreement.
-
     const C = patient.compliance;
     const R = patient.resistance;
-    const lungScale = 1 + fillFrac * 0.22 * expGain; console.log("lungScale", lungScale);
-    const brightness = 1 + fillFrac * 0.12;
-    
-    lungL.style.transform = `scale(${lungScale.toFixed(4)})`; 
+
+    const lungScale = 1 + fillFrac * 0.22 * expGain;
+
+    lungL.style.transform = `scale(${lungScale.toFixed(4)})`;
     lungR.style.transform = `scale(${lungScale.toFixed(4)})`;
-    
+    const brightness = 1 + fillFrac * 0.12;
     lungL.style.filter = `brightness(${brightness.toFixed(3)})`;
     lungR.style.filter = `brightness(${brightness.toFixed(3)})`;
 
@@ -599,14 +631,14 @@
   bindPatient("sRes","rRes","resistance");
   bindPatient("sEffort","rEffort","effort", v => v===0 ? "0 (none)" : v);
 
-  // checkboxes for collapsed lungs
   function bindCheckbox(id, key){
     const el = $(id);
-    el.addEventListener("change", () => {
+    if(!el) return; // tolerate markup not being present yet
+    el.addEventListener("change", ()=>{
       patient[key] = el.checked;
-      // mutually-exclusive-ish safety: both collapsed is an extreme edge case, allow but no special guard needed
     });
   }
+  bindCheckbox("chkLeftCollapsed", "leftCollapsed");
   bindCheckbox("chkRightCollapsed", "rightCollapsed");
 
   document.querySelectorAll(".preset-btn").forEach(btn=>{
@@ -624,6 +656,15 @@
     $("sRes").value=r; $("rRes").textContent=r;
     $("sEffort").value=e; $("rEffort").textContent= e===0?"0 (none)":e;
   }
+
+
+  // ---------------- MINIMAL GLOBAL EXPORT ----------------
+  // Everything else in this file is intentionally scoped inside the IIFE.
+  // This is the one hook the Unity loader's ready callback needs: a way to
+  // hand VentUnityBridge a fresh snapshot at the moment Unity comes online
+  // (see VentUnityBridge.setUnityInstance(instance, getStateFn) in
+  // unity-bridge.js, and the loader stub at the bottom of index.html).
+  window.getVentUnitySnapshot = buildUnitySnapshot;
 
   // init
   fitCanvas();

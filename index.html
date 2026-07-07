@@ -39,18 +39,24 @@
 
       <div class="screen-main">
 
-        <div class="lungpanel">
+        <div class="lungpanel" id="lungPanelWrap">
           <div class="lp-title">PATIENT MODEL</div>
           
           <div class="lp-readout">
-            <span>C: <b id="lpComp">50</b> mL/cmH&#8322;O</span>
-            <span>R: <b id="lpRes">10</b></span>
+            <div class="lp-readout-row">
+              <span>C: <b id="lpComp">50</b> mL/cmH&#8322;O</span>
+              <span>R: <b id="lpRes">10</b></span>
+            </div>
+            <div class="lp-readout-row">
+              <span>SpO&#8322;: <b id="vSpO2">98</b>%</span>
+              <span>PaCO&#8322;: <b id="vPaCO2">40</b> mmHg</span>
+            </div>
           </div>
 
-          <!-- 2D Anatomy visualizer placeholder -->
+          <!-- Anatomy visualizer (2D fallback -- visible until Unity signals ready) -->
           <svg id="lungSvg" 
-            width="400"
-            height="320"
+            width="300"
+            height="220"
             viewBox="0 0 220 300" 
             xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -122,7 +128,14 @@
             </g>
           </svg>
 
-          <div id="unityContainer" style="display:none;"><!-- Unity canvas mounts here --></div>
+          <!-- Unity WebGL 3D lung visualizer -- hidden until unity-bridge.js
+               confirms the instance is ready, then it replaces the SVG above.
+               The actual Unity loader script (unityLoader.js / your Build
+               folder's loader) is expected to create its canvas inside this
+               div and call VentUnityBridge.setUnityInstance(instance) in its
+               .then() callback. See scripts/unity-bridge.js. -->
+          <div id="unityContainer" style="display:none;"></div>
+
         </div>
 
         <div class="scope">
@@ -142,24 +155,24 @@
             <div class="unit">cmH&#8322;O</div>
           </div>
           <div class="vtile green">
-            <div class="range">30<br><span style="opacity:.5">5</span></div>
+            <div class="range">30<br><span class="dim">5</span></div>
             <div class="lbl">RR</div>
             <div class="val" id="vRR">0</div>
             <div class="unit">b/min</div>
           </div>
           <div class="vtile cyan">
-            <div class="range">40.0<br><span style="opacity:.5">5.0</span></div>
+            <div class="range">40.0<br><span class="dim">5.0</span></div>
             <div class="lbl">MV&#7497;</div>
-            <div class="val" id="vMV" style="font-size:21px;">0.0</div>
+            <div class="val val--sm" id="vMV">0.0</div>
             <div class="unit">l/min</div>
           </div>
-          <div class="vtile" style="padding-bottom:6px;">
+          <div class="vtile vtile--tight">
             <div class="lbl">VTi</div>
             <div class="vti-mini" id="vVTi">0</div>
           </div>
           <div class="vtile cyan">
             <div class="lbl">VTe</div>
-            <div class="val" id="vVTe" style="font-size:21px;">0</div>
+            <div class="val val--sm" id="vVTe">0</div>
             <div class="unit">ml</div>
           </div>
         </div>
@@ -251,11 +264,6 @@
         <h3>Simulated patient — lung mechanics</h3>
 
         <div class="slider-row">
-          <input type="checkbox" id="chkRightCollapsed">
-          <label for="chkRightCollapsed">Right lung collapsed</label>
-        </div>
-
-        <div class="slider-row">
           <div class="top"><label>Compliance (C)</label><span class="readout"><span id="rComp">50</span> mL/cmH&#8322;O</span></div>
           <input type="range" class="patient" id="sComp" min="10" max="100" step="1" value="50">
           <div class="ticks"><span>10 — stiff (ARDS/fibrosis)</span><span>100 — normal/emphysema</span></div>
@@ -274,6 +282,21 @@
         </div>
 
         <div class="divider"></div>
+
+        <div class="slider-row">
+          <div class="top"><label class="checkbox-lbl">
+            <input type="checkbox" id="chkLeftCollapsed">
+            Left lung collapsed
+          </label></div>
+        </div>
+        <div class="slider-row">
+          <div class="top"><label class="checkbox-lbl">
+            <input type="checkbox" id="chkRightCollapsed">
+            Right lung collapsed
+          </label></div>
+        </div>
+
+        <div class="divider"></div>
         <div class="preset-row">
           <button class="preset-btn" data-preset="normal">Normal lungs</button>
           <button class="preset-btn" data-preset="ards">ARDS (low C, mod R)</button>
@@ -289,6 +312,35 @@
   <footer>Educational simulation only — not a medical device, not for clinical decision-making.</footer>
 </div>
 
+<script src="scripts/unity-bridge.js"></script>
 <script src="scripts/vent-scripts.js"></script>
+
+<!--
+  UNITY WEBGL LOADER -- fill in with your actual Build folder's loader.js
+  and config, matching whatever createUnityInstance() call your Unity
+  build export generated. The two lines that matter for this integration
+  are marked below; everything else is boilerplate from Unity's own
+  WebGL template.
+
+<script src="Build/YourBuild.loader.js"></script>
+<script>
+  var buildConfig = {
+    dataUrl: "Build/YourBuild.data",
+    frameworkUrl: "Build/YourBuild.framework.js",
+    codeUrl: "Build/YourBuild.wasm"
+    // ...streamingAssetsUrl, companyName, productName, productVersion, etc.
+  };
+
+  createUnityInstance(document.querySelector("#unityContainer canvas"), buildConfig, (progress) => {
+    // optional: wire a loading indicator to `progress` (0-1) here
+  }).then((unityInstance) => {
+    // <-- the two lines that connect this build to the ventilator sim:
+    VentUnityBridge.setUnityInstance(unityInstance, window.getVentUnitySnapshot);
+  }).catch((err) => {
+    console.error("Unity failed to load, staying on 2D SVG lung view:", err);
+  });
+</script>
+-->
+
 </body>
 </html>

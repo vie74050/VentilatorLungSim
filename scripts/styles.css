@@ -157,7 +157,7 @@ body {
 .scope {
     background: var(--bg-screen);
     border-radius: 8px;
-    flex: 0 0 35%;
+    flex: 0 0 50%;
     min-width: 0;
     padding: 6px 4px 6px 2px;
     position: relative;
@@ -180,7 +180,21 @@ canvas#scopeCanvas {
     position: relative;
 }
 
-#lungSvg, #unityContainer { position: absolute; inset: 0; }
+/* #lungSvg and #unityContainer occupy the same space; unity-bridge.js
+   toggles which one is display:none so the swap is instant, no reflow. */
+.lungpanel svg#lungSvg,
+.lungpanel #unityContainer {
+    position: absolute;
+    inset: 8px;
+    top: 28px; /* leave room for .lp-title above */
+    bottom: 28px; /* leave room for .lp-readout below */
+}
+
+#unityContainer canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
 
 .lungpanel .lp-title {
     font-size: 9.5px;
@@ -198,11 +212,17 @@ canvas#scopeCanvas {
 
 .lungpanel .lp-readout {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 3px;
     font-family: var(--mono);
     font-size: 9.5px;
     color: var(--text-faint);
     pointer-events: none;
+}
+
+.lungpanel .lp-readout-row {
+    display: flex;
+    gap: 6px;
 }
 
 .lungpanel .lp-readout b {
@@ -262,6 +282,11 @@ canvas#scopeCanvas {
     line-height: 1.05;
 }
 
+/* Smaller value size for tiles whose numbers run longer (decimals, 3+ digits) */
+.vtile .val--sm {
+    font-size: 21px;
+}
+
 .vtile .unit {
     font-size: 8.5px;
     color: var(--text-dim);
@@ -279,6 +304,12 @@ canvas#scopeCanvas {
     color: var(--cyan);
 }
 
+/* Reduced bottom padding for compact tiles (e.g. VTi's mini readout, which
+   doesn't have a .unit row beneath it) */
+.vtile--tight {
+    padding-bottom: 6px;
+}
+
 .vtile .range {
     position: absolute;
     top: 6px;
@@ -287,6 +318,12 @@ canvas#scopeCanvas {
     color: var(--text-faint);
     text-align: right;
     font-family: var(--mono);
+}
+
+/* Dimmed secondary number inside a .range block (e.g. the low end of a
+   min-max pair, shown fainter than the primary/high value) */
+.vtile .range .dim {
+    opacity: .5;
 }
 
 .vtile .sub-row {
@@ -520,6 +557,17 @@ input[type=range].patient::-moz-range-thumb {
     color: var(--text-faint);
     font-family: var(--mono);
     margin-top: 3px;
+}
+
+.slider-row .checkbox-lbl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.slider-row .checkbox-lbl input[type="checkbox"] {
+    width: auto;
 }
 
 .divider {
