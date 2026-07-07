@@ -168,7 +168,14 @@
 
     } else if(mode === "PS"){
       const s = settings.PS;
-      const Ptarget = s.peep + s.ps;
+      // Patient-triggered breaths get a modest assist pressure (PS) -- the
+      // patient is doing most of the work. Backup/apnea breaths (effort=0,
+      // no trigger detected) get backupPC instead: the machine is now doing
+      // the entire breath on its own, so it needs a full pressure-controlled
+      // target, not just an assist bump. This mirrors real ventilator
+      // behavior, where apnea backup is effectively a PC breath, not PS
+      // with a timer.
+      const Ptarget = effort > 0 ? s.peep + s.ps : s.peep + s.backupPC;
       // spontaneous-ish cycling: rate driven by effort (more effort -> faster, more variable)
       const baseRR = effort > 0 ? Math.min(28, s.backupRR*0.6 + effort*1.6) : s.backupRR;
       const totalCycle = 60/Math.max(baseRR,4);
