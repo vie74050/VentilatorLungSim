@@ -447,9 +447,39 @@
 
   // ---------------- LUNG VISUAL ----------------
   const lungL = $("lungL"), lungR = $("lungR");
+  const lungLPath = document.querySelector('#lungL path[fill^="url"]');
+  const lungRPath = document.querySelector('#lungR path[fill^="url"]');
   const bronchL = $("bronchL"), bronchR = $("bronchR");
   const alvCircles = document.querySelectorAll(".alv");
   let lpCompLast = null, lpResLast = null;
+  let lpLeftCollapsedLast = false, lpRightCollapsedLast = false;
+
+  // Healthy tissue color lerps from stiffened-red (frac=1) to healthy pink (frac=0).
+  function tissueColor(frac){
+    const lo = [186, 92, 80];   // darker stiffened red
+    const hi = [255, 179, 168]; // healthy light pink
+    const mix = lo.map((v,i)=> Math.round(v + (hi[i]-v)*(1-frac)));
+    return `rgb(${mix[0]},${mix[1]},${mix[2]})`;
+  }
+
+  const COLLAPSED_SCALE = 0.78;
+  const COLLAPSED_COLOR = "rgb(130,128,124)";
+
+  // A collapsed lung doesn't breathe: it holds a small deflated scale and a
+  // flat, desaturated grey rather than following Vol/compliance like the
+  // working side does. Mirrors the "hold at collapsed state, ignore fillFrac"
+  // logic used in LungController.cs on the Unity side.
+  function applyLungSide(lungEl, pathEl, collapsed, normalScale, normalBrightness){
+    if (collapsed){
+      lungEl.style.transform = `scale(${COLLAPSED_SCALE})`;
+      lungEl.style.filter = "brightness(0.7)";
+      if (pathEl) pathEl.style.fill = COLLAPSED_COLOR;
+    } else {
+      lungEl.style.transform = `scale(${normalScale.toFixed(4)})`;
+      lungEl.style.filter = `brightness(${normalBrightness.toFixed(3)})`;
+      if (pathEl) pathEl.style.fill = tissueColor(stiffFrac);
+    }
+  }
 
   function updateLungVisual(){
     // NOTE: fillFrac, expGain, stiffFrac, rFrac, alvScale, bronchioleScale,
@@ -461,38 +491,39 @@
     const R = patient.resistance;
 
     const lungScale = 1 + fillFrac * 0.22 * expGain;
+    const breathingBrightness = 1 + fillFrac * 0.12;
 
-    lungL.style.transform = `scale(${lungScale.toFixed(4)})`;
-    lungR.style.transform = `scale(${lungScale.toFixed(4)})`;
-    const brightness = 1 + fillFrac * 0.12;
-    lungL.style.filter = `brightness(${brightness.toFixed(3)})`;
-    lungR.style.filter = `brightness(${brightness.toFixed(3)})`;
+    applyLungSide(lungL, lungLPath, patient.leftCollapsed, lungScale, breathingBrightness);
+    applyLungSide(lungR, lungRPath, patient.rightCollapsed, lungScale, breathingBrightness);
 
     alvCircles.forEach(c=>{
       c.style.transform = `scale(${alvScale.toFixed(4)})`;
     });
 
-    // resistance -> visually narrow / thicken & darken the airway (bronchi)
+    // resistance -> visually narrow / thicken & darken the airway (bronchi).
+    // A collapsed lung's own bronchus is shown occluded (thin, dark) instead
+    // of following the resistance slider, since the collapse itself -- not
+    // airway resistance -- is what's blocking that side.
     // bronchioleScale (0-1, 1=clear) is the Unity-facing version of this same
-    // number; bronchWidth here is just its SVG stroke-width rendering.
+    // resistance number; bronchWidth here is just its SVG stroke-width rendering.
     const bronchWidth = 6 - rFrac * 3.2; // narrows as resistance climbs
     const bronchColor = rFrac > 0.5 ? "#8a5147" : "#c98a78";
-    [bronchL, bronchR].forEach(b=>{
-      b.setAttribute("stroke-width", bronchWidth.toFixed(1));
-      b.style.stroke = bronchColor;
-    });
+    const OCCLUDED_WIDTH = 1.8;
+    const OCCLUDED_COLOR = "#5c5852";
 
-    // compliance -> lung tissue color (stiff/fibrotic lungs read denser & darker)
-    if(C !== lpCompLast){
-      const lo = [186, 92, 80];   // darker stiffened red
-      const hi = [255, 179, 168]; // healthy light pink
-      const mix = lo.map((v,i)=> Math.round(v + (hi[i]-v)*(1-stiffFrac)));
-      const col = `rgb(${mix[0]},${mix[1]},${mix[2]})`;
-      document.querySelectorAll('#lungL path[fill^="url"], #lungR path[fill^="url"]').forEach(p=>{
-        p.style.fill = col;
-      });
+    bronchL.setAttribute("stroke-width", (patient.leftCollapsed ? OCCLUDED_WIDTH : bronchWidth).toFixed(1));
+    bronchL.style.stroke = patient.leftCollapsed ? OCCLUDED_COLOR : bronchColor;
+    bronchR.setAttribute("stroke-width", (patient.rightCollapsed ? OCCLUDED_WIDTH : bronchWidth).toFixed(1));
+    bronchR.style.stroke = patient.rightCollapsed ? OCCLUDED_COLOR : bronchColor;
+
+    // compliance / collapse-state text + color refresh -- only touches the
+    // DOM when compliance or either collapse flag actually changed, rather
+    // than reapplying identical style strings every 20ms tick.
+    if(C !== lpCompLast || patient.leftCollapsed !== lpLeftCollapsedLast || patient.rightCollapsed !== lpRightCollapsedLast){
       $("lpComp").textContent = C;
       lpCompLast = C;
+      lpLeftCollapsedLast = patient.leftCollapsed;
+      lpRightCollapsedLast = patient.rightCollapsed;
     }
     if(R !== lpResLast){
       $("lpRes").textContent = R;
@@ -504,10 +535,10 @@
       c.style.fill = overDist ? "#e0a23d" : "#e8978a";
     });
 
-    // NOTE: the SVG is a flat 2D fallback and doesn't attempt to render a
-    // collapsed-lung state distinctly (no separate "collapsed" artwork) --
-    // that distinction is only meaningful in the 3D Unity model, which has
-    // a dedicated collapsed-lung morph target. See Unity bridge / README.
+    // NOTE: unlike Unity's dedicated collapsed-lung morph target, the SVG has
+    // no separate collapsed artwork -- collapse is approximated here via a
+    // fixed deflated scale + desaturated grey fill + occluded bronchus,
+    // applied per-side in applyLungSide() above.
   }
 
   // ---------------- SETTINGS BAR (device bottom strip) ----------------
