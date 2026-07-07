@@ -53,13 +53,10 @@
   // breath state machine
   let phase = "insp";        // insp | exp
   let phaseTime = 0;
-  let cycleStart = 0;
 
   // live signals (current instantaneous values)
   let Paw = 0, Flow = 0, Vol = 0;     // cmH2O, L/min, mL
-  let lastVolPeakIns = 0;             // VTi this breath
-  let lastVTe = 0, lastVTi = 0, lastPpeak = 0, lastRRdisplay = 16, lastMV = 0;
-  let mvAccumVol = 0, mvWindowStart = 0;
+  let lastVTe = 0, lastVTi = 0, lastPpeak = 0, lastRRdisplay = 16;
 
   // history buffer for scrolling traces (3 panels)
   const HIST_SECONDS = 8;
@@ -73,9 +70,6 @@
     hPaw[histIdx] = p; hFlow[histIdx] = f; hVol[histIdx] = v;
     histIdx = (histIdx+1) % histLen;
   }
-
-  // patient trigger detection (for PS mode autocycling on effort)
-  let triggered = false;
 
   // captured exactly once at the insp->exp transition: the starting volume for this breath's exhale decay
   let expStartVol = 0;
@@ -106,8 +100,7 @@
     if(mode === "VC"){
       const s = settings.VC;
       const totalCycle = 60 / s.rr;
-      const ie = 0.5; // fraction inspiratory time (I:E ~ 1:2 -> insp ~ 0.33, but keep simple visual ~0.4)
-      const Ti = totalCycle * 0.35;
+      const Ti = totalCycle * 0.35; // I:E ~ 1:2 in real practice; simplified fixed 35% here for visual clarity
       const Te = totalCycle - Ti;
       const targetVL = s.tv/1000;
 
@@ -184,7 +177,6 @@
 
       if(phase === "insp"){
         const riseTau = 0.05;
-        const pcEff = effort>0 ? s.ps : s.ps; // PS magnitude fixed by setting
         Paw = Ptarget - (Ptarget - s.peep)*Math.exp(-phaseTime/riseTau);
         const drive = (Paw - s.peep - Vol/C);
         Flow = Math.max(drive / Math.max(R,1), 0) * (effort>0 ? 1.0 : 0.9);
@@ -363,7 +355,6 @@
 
     // trace
     const n = histLen;
-    const visibleSeconds = HIST_SECONDS;
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.6;
     ctx.beginPath();

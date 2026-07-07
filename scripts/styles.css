@@ -157,7 +157,7 @@ body {
 .scope {
     background: var(--bg-screen);
     border-radius: 8px;
-    flex: 0 0 50%;
+    flex: 0 0 35%;
     min-width: 0;
     padding: 6px 4px 6px 2px;
     position: relative;

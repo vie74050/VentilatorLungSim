@@ -47,41 +47,26 @@ window.VentUnityBridge = (function () {
     leftCollapsed: -1, rightCollapsed: -1
   };
 
+  const NUMERIC_KEYS = Object.keys(THRESH);
+  // Fields compared by exact equality (flip = always send), not by threshold.
+  const EXACT_KEYS = ["phase", "overDist", "leftCollapsed", "rightCollapsed"];
+
   function meaningfulChange(next) {
-    if (next.phase !== lastSent.phase) return true;
-    if (next.overDist !== lastSent.overDist) return true;
-    if (next.leftCollapsed !== lastSent.leftCollapsed) return true;
-    if (next.rightCollapsed !== lastSent.rightCollapsed) return true;
     return (
-      Math.abs(next.fillFrac - lastSent.fillFrac) > THRESH.fillFrac ||
-      Math.abs(next.expGain - lastSent.expGain) > THRESH.expGain ||
-      Math.abs(next.stiffFrac - lastSent.stiffFrac) > THRESH.stiffFrac ||
-      Math.abs(next.rFrac - lastSent.rFrac) > THRESH.rFrac ||
-      Math.abs(next.alvScale - lastSent.alvScale) > THRESH.alvScale ||
-      Math.abs(next.bronchioleScale - lastSent.bronchioleScale) > THRESH.bronchioleScale ||
-      Math.abs(next.effort - lastSent.effort) > THRESH.effort ||
-      Math.abs(next.spo2 - lastSent.spo2) > THRESH.spo2 ||
-      Math.abs(next.paCO2 - lastSent.paCO2) > THRESH.paCO2 ||
-      Math.abs(next.shuntFrac - lastSent.shuntFrac) > THRESH.shuntFrac
+      EXACT_KEYS.some((k) => next[k] !== lastSent[k]) ||
+      NUMERIC_KEYS.some((k) => Math.abs(next[k] - lastSent[k]) > THRESH[k])
     );
   }
 
   function send(state, force) {
     if (!unityReady) return;
 
+    // Spread first (cheap, correct for every numeric/string field), then
+    // override only the fields Unity's JsonUtility needs as 0/1 rather than
+    // JS booleans.
     const next = {
-      fillFrac: state.fillFrac,
-      expGain: state.expGain,
-      stiffFrac: state.stiffFrac,
-      rFrac: state.rFrac,
-      alvScale: state.alvScale,
-      bronchioleScale: state.bronchioleScale,
+      ...state,
       overDist: state.overDist ? 1 : 0,
-      phase: state.phase,
-      effort: state.effort,
-      spo2: state.spo2,
-      paCO2: state.paCO2,
-      shuntFrac: state.shuntFrac,
       leftCollapsed: state.leftCollapsed ? 1 : 0,
       rightCollapsed: state.rightCollapsed ? 1 : 0
     };
