@@ -284,24 +284,27 @@
         <div class="divider"></div>
 
         <div class="slider-row">
-          <div class="top"><label class="checkbox-lbl">
+          <div class="top">
+            <label class="checkbox-lbl">
             <input type="checkbox" id="chkLeftCollapsed">
             Left lung collapsed
-          </label></div>
-        </div>
-        <div class="slider-row">
-          <div class="top"><label class="checkbox-lbl">
+            </label>
+            <label class="checkbox-lbl">
             <input type="checkbox" id="chkRightCollapsed">
             Right lung collapsed
-          </label></div>
+            </label>
+          </div>
         </div>
-
+       
         <div class="divider"></div>
         <div class="preset-row">
-          <button class="preset-btn" data-preset="normal">Normal lungs</button>
-          <button class="preset-btn" data-preset="ards">ARDS (low C, mod R)</button>
-          <button class="preset-btn" data-preset="copd">COPD (high R)</button>
-          <button class="preset-btn" data-preset="spontaneous">Spontaneous effort</button>
+          <select id="presetSelect" class="preset-select">
+            <option value="" selected disabled>Quick presets…</option>
+            <option value="normal">Normal lungs</option>
+            <option value="ards">ARDS (low C, mod R)</option>
+            <option value="copd">COPD (high R)</option>
+            <option value="spontaneous">Spontaneous effort</option>
+          </select>
         </div>
 
       </div>

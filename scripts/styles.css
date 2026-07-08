@@ -583,19 +583,27 @@ input[type=range].patient::-moz-range-thumb {
     margin-top: 4px;
 }
 
-.preset-btn {
-    background: transparent;
+.preset-select {
+    background: var(--bg-tile);
     border: 1px solid var(--line);
     color: var(--text-dim);
     border-radius: 7px;
-    padding: 6px 10px;
-    font-size: 14px;
-    cursor: pointer;
+    padding: 8px 10px;
+    font-size: 13px;
     font-family: var(--grotesk);
+    cursor: pointer;
+    width: 100%;
 }
 
-.preset-btn:hover {
+.preset-select:hover,
+.preset-select:focus {
     border-color: var(--cyan);
+    color: var(--text-hi);
+    outline: none;
+}
+
+.preset-select option {
+    background: var(--bg-tile);
     color: var(--text-hi);
 }
 
