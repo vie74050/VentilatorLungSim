@@ -4,12 +4,12 @@
   "settings": {
     "VC": {
       "fio2": 21,
-      "peep": 0,
-      "rr": 5,
-      "tv": 150
+      "peep": 5,
+      "rr": 16,
+      "tv": 450
     },
     "PC": {
-      "fio2": 40,
+      "fio2": 21,
       "peep": 8,
       "rr": 18,
       "pc": 15
@@ -26,7 +26,7 @@
     "compliance": 50,
     "resistance": 10,
     "effort": 0,
-    "leftCollapsed": true,
+    "leftCollapsed": false,
     "rightCollapsed": false
   }
 }
