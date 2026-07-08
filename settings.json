@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "mode": "VC",
+  "settings": {
+    "VC": {
+      "fio2": 21,
+      "peep": 0,
+      "rr": 5,
+      "tv": 150
+    },
+    "PC": {
+      "fio2": 40,
+      "peep": 8,
+      "rr": 18,
+      "pc": 15
+    },
+    "PS": {
+      "fio2": 30,
+      "peep": 5,
+      "ps": 5,
+      "backupRR": 10,
+      "backupPC": 15
+    }
+  },
+  "patient": {
+    "compliance": 10,
+    "resistance": 4,
+    "effort": 0,
+    "leftCollapsed": true,
+    "rightCollapsed": false
+  }
+}

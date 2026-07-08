@@ -793,60 +793,199 @@
     btn.addEventListener("click", () => switchMode(btn.dataset.mode));
   });
 
-  function bindSlider(sliderId, readoutId, store, key, isFloat) {
-    const el = $(sliderId);
+  // ---------------- CONTROL FIELD REGISTRY ----------------
+  // Single source of truth for every slider/checkbox <-> state mapping.
+  // Binding (below), preset application (setPatient), and save/load
+  // (serializeState/applyState/refreshControlsUI) all read this same list
+  // instead of maintaining three separate hardcoded field lists that could
+  // drift out of sync as controls are added.
+  const SLIDER_FIELDS = [
+    {
+      sliderId: "sFiO2",
+      readoutId: "rFiO2",
+      store: settings.VC,
+      key: "fio2",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sPEEPvc",
+      readoutId: "rPEEPvc",
+      store: settings.VC,
+      key: "peep",
+      isFloat: true,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sRRvc",
+      readoutId: "rRRvc",
+      store: settings.VC,
+      key: "rr",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sTV",
+      readoutId: "rTV",
+      store: settings.VC,
+      key: "tv",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+
+    {
+      sliderId: "sFiO2pc",
+      readoutId: "rFiO2pc",
+      store: settings.PC,
+      key: "fio2",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sPEEPpc",
+      readoutId: "rPEEPpc",
+      store: settings.PC,
+      key: "peep",
+      isFloat: true,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sRRpc",
+      readoutId: "rRRpc",
+      store: settings.PC,
+      key: "rr",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sPC",
+      readoutId: "rPC",
+      store: settings.PC,
+      key: "pc",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+
+    {
+      sliderId: "sFiO2ps",
+      readoutId: "rFiO2ps",
+      store: settings.PS,
+      key: "fio2",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sPEEPps",
+      readoutId: "rPEEPps",
+      store: settings.PS,
+      key: "peep",
+      isFloat: true,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sPS",
+      readoutId: "rPS",
+      store: settings.PS,
+      key: "ps",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sBackupRR",
+      readoutId: "rBackupRR",
+      store: settings.PS,
+      key: "backupRR",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+    {
+      sliderId: "sBackupPC",
+      readoutId: "rBackupPC",
+      store: settings.PS,
+      key: "backupPC",
+      isFloat: false,
+      isVentilatorSetting: true,
+    },
+
+    {
+      sliderId: "sComp",
+      readoutId: "rComp",
+      store: patient,
+      key: "compliance",
+      isFloat: false,
+    },
+    {
+      sliderId: "sRes",
+      readoutId: "rRes",
+      store: patient,
+      key: "resistance",
+      isFloat: false,
+    },
+    {
+      sliderId: "sEffort",
+      readoutId: "rEffort",
+      store: patient,
+      key: "effort",
+      isFloat: false,
+      fmt: (v) => (v === 0 ? "0 (none)" : v),
+    },
+  ];
+
+  const CHECKBOX_FIELDS = [
+    { id: "chkLeftCollapsed", key: "leftCollapsed" },
+    { id: "chkRightCollapsed", key: "rightCollapsed" },
+  ];
+
+  function bindSlider(f) {
+    const el = $(f.sliderId);
+    if (!el) return;
     el.addEventListener("input", () => {
-      const v = isFloat ? parseFloat(el.value) : parseInt(el.value, 10);
-      store[key] = v;
-      $(readoutId).textContent = isFloat ? v.toFixed(1) : v;
-      renderSettingsBar();
-      flashSettingsBar();
+      const v = f.isFloat ? parseFloat(el.value) : parseInt(el.value, 10);
+      f.store[f.key] = v;
+      $(f.readoutId).textContent = f.fmt
+        ? f.fmt(v)
+        : f.isFloat
+          ? v.toFixed(1)
+          : v;
+      if (f.isVentilatorSetting) {
+        renderSettingsBar();
+        flashSettingsBar();
+      }
     });
   }
+  SLIDER_FIELDS.forEach(bindSlider);
 
-  // VC
-  bindSlider("sFiO2", "rFiO2", settings.VC, "fio2", false);
-  bindSlider("sPEEPvc", "rPEEPvc", settings.VC, "peep", true);
-  bindSlider("sRRvc", "rRRvc", settings.VC, "rr", false);
-  bindSlider("sTV", "rTV", settings.VC, "tv", false);
-
-  // PC
-  bindSlider("sFiO2pc", "rFiO2pc", settings.PC, "fio2", false);
-  bindSlider("sPEEPpc", "rPEEPpc", settings.PC, "peep", true);
-  bindSlider("sRRpc", "rRRpc", settings.PC, "rr", false);
-  bindSlider("sPC", "rPC", settings.PC, "pc", false);
-
-  // PS
-  bindSlider("sFiO2ps", "rFiO2ps", settings.PS, "fio2", false);
-  bindSlider("sPEEPps", "rPEEPps", settings.PS, "peep", true);
-  bindSlider("sPS", "rPS", settings.PS, "ps", false);
-  bindSlider("sBackupRR", "rBackupRR", settings.PS, "backupRR", false);
-  bindSlider("sBackupPC", "rBackupPC", settings.PS, "backupPC", false);
-
-  // Patient
-  function bindPatient(sliderId, readoutId, key, fmt) {
-    const el = $(sliderId);
-    el.addEventListener("input", () => {
-      const v = parseFloat(el.value);
-      patient[key] = v;
-      $(readoutId).textContent = fmt ? fmt(v) : v;
-    });
-  }
-  bindPatient("sComp", "rComp", "compliance");
-  bindPatient("sRes", "rRes", "resistance");
-  bindPatient("sEffort", "rEffort", "effort", (v) =>
-    v === 0 ? "0 (none)" : v,
-  );
-
-  function bindCheckbox(id, key) {
-    const el = $(id);
+  function bindCheckbox(f) {
+    const el = $(f.id);
     if (!el) return; // tolerate markup not being present yet
     el.addEventListener("change", () => {
-      patient[key] = el.checked;
+      patient[f.key] = el.checked;
     });
   }
-  bindCheckbox("chkLeftCollapsed", "leftCollapsed");
-  bindCheckbox("chkRightCollapsed", "rightCollapsed");
+  CHECKBOX_FIELDS.forEach(bindCheckbox);
+
+  // Pushes current settings/patient state into every bound slider/checkbox's
+  // DOM (value + readout text) -- used after a preset, a Load, or the
+  // settings.json auto-load, so the UI always matches the underlying state.
+  function refreshControlsUI() {
+    SLIDER_FIELDS.forEach((f) => {
+      const el = $(f.sliderId);
+      if (!el) return;
+      const v = f.store[f.key];
+      el.value = v;
+      $(f.readoutId).textContent = f.fmt
+        ? f.fmt(v)
+        : f.isFloat
+          ? Number(v).toFixed(1)
+          : v;
+    });
+    CHECKBOX_FIELDS.forEach((f) => {
+      const el = $(f.id);
+      if (!el) return;
+      el.checked = !!patient[f.key];
+    });
+    renderSettingsBar();
+  }
 
   const presetSelect = $("presetSelect");
   if (presetSelect) {
@@ -863,10 +1002,7 @@
       }
       if (p === "spontaneous") {
         setPatient(50, 10, 6);
-        if (mode !== "PS") switchMode("PS");
-        document.querySelector('[data-mode="PS"]').classList.add("active");
-        document.querySelector('[data-mode="VC"]').classList.remove("active");
-        document.querySelector('[data-mode="PC"]').classList.remove("active");
+        switchMode("PS");
       }
       presetSelect.value = ""; // reset to placeholder so re-selecting the same preset again still fires change
     });
@@ -875,13 +1011,94 @@
     patient.compliance = c;
     patient.resistance = r;
     patient.effort = e;
-    $("sComp").value = c;
-    $("rComp").textContent = c;
-    $("sRes").value = r;
-    $("rRes").textContent = r;
-    $("sEffort").value = e;
-    $("rEffort").textContent = e === 0 ? "0 (none)" : e;
+    refreshControlsUI();
   }
+
+  // ---------------- SAVE / LOAD SNAPSHOT ----------------
+  function serializeState() {
+    return {
+      version: 1,
+      mode: mode,
+      settings: {
+        VC: { ...settings.VC },
+        PC: { ...settings.PC },
+        PS: { ...settings.PS },
+      },
+      patient: { ...patient },
+    };
+  }
+
+  function applyState(data) {
+    if (!data || typeof data !== "object") return;
+    if (data.settings) {
+      if (data.settings.VC) Object.assign(settings.VC, data.settings.VC);
+      if (data.settings.PC) Object.assign(settings.PC, data.settings.PC);
+      if (data.settings.PS) Object.assign(settings.PS, data.settings.PS);
+    }
+    if (data.patient) Object.assign(patient, data.patient);
+
+    refreshControlsUI();
+
+    const targetMode =
+      data.mode === "VC" || data.mode === "PC" || data.mode === "PS"
+        ? data.mode
+        : mode;
+    switchMode(targetMode); // also refreshes the settings bar, active tab, mode note, and resets breath state for a clean start
+  }
+
+  const btnSave = $("btnSaveSettings");
+  if (btnSave) {
+    btnSave.addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(serializeState(), null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "settings.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  const btnLoad = $("btnLoadSettings");
+  const loadFileInput = $("loadFileInput");
+  if (btnLoad && loadFileInput) {
+    btnLoad.addEventListener("click", () => loadFileInput.click());
+    loadFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          applyState(JSON.parse(reader.result));
+        } catch (err) {
+          console.error("Failed to load settings file:", err);
+          alert(
+            "Couldn't load that file -- make sure it's a settings.json exported from this simulator.",
+          );
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = ""; // reset so re-selecting the same file still fires change next time
+    });
+  }
+
+  // On page load, check for a settings.json sitting alongside index.html
+  // (e.g. an instructor-uploaded case file in the same LMS folder). Fails
+  // silently and keeps the hardcoded defaults above if none is found, or if
+  // the page was opened directly via file:// where fetch() of local files
+  // is often blocked by the browser.
+  fetch("settings.json")
+    .then((r) =>
+      r.ok ? r.json() : Promise.reject(new Error("no settings.json")),
+    )
+    .then((data) => applyState(data))
+    .catch(() => {
+      /* no settings.json present -- keep hardcoded defaults */
+    });
 
   // ---------------- MINIMAL GLOBAL EXPORT ----------------
   // Everything else in this file is intentionally scoped inside the IIFE.

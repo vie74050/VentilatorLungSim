@@ -457,6 +457,7 @@ canvas#scopeCanvas {
 .deck-head {
     display: flex;
     align-items: baseline;
+    justify-content: space-between;
     gap: 10px;
     margin-bottom: 14px;
 }
@@ -475,6 +476,28 @@ canvas#scopeCanvas {
     padding: 2px 7px;
     border-radius: 5px;
     border: 1px solid rgba(232, 51, 110, .25);
+}
+
+.deck-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.deck-action-btn {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    border-radius: 7px;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    font-family: var(--grotesk);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.deck-action-btn:hover {
+    border-color: var(--cyan);
+    color: var(--text-hi);
 }
 
 .deck-grid {
