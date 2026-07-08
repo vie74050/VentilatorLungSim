@@ -575,10 +575,13 @@
   const bronchL = $("bronchL"),
     bronchR = $("bronchR");
   const alvCircles = document.querySelectorAll(".alv");
+  const gasExchangeGroup = $("gasExchange");
   let lpCompLast = null,
     lpResLast = null;
   let lpLeftCollapsedLast = false,
     lpRightCollapsedLast = false;
+  let lpSpo2Last = null,
+    lpPaCO2Last = null;
 
   // Healthy tissue color lerps from stiffened-red (frac=1) to healthy pink (frac=0).
   function tissueColor(frac) {
@@ -690,6 +693,18 @@
     alvCircles.forEach((c) => {
       c.style.fill = overDist ? "#e0a23d" : "#e8978a";
     });
+
+    // O2/CO2 exchange dot intensity -- spo2/paCO2 only change once per
+    // breath (updateGasExchange(), at the insp->exp transition), so gate the
+    // DOM write the same way the C/R readouts above do.
+    if (gasExchangeGroup && (spo2 !== lpSpo2Last || paCO2 !== lpPaCO2Last)) {
+      const o2Frac = Math.max(0, Math.min(1, (spo2 - 70) / 30)); // 70-100 sim range -> 0-1
+      const co2Frac = Math.max(0, Math.min(1, (paCO2 - 15) / 85)); // 15-100 sim range -> 0-1
+      gasExchangeGroup.style.setProperty("--o2-intensity", o2Frac.toFixed(2));
+      gasExchangeGroup.style.setProperty("--co2-intensity", co2Frac.toFixed(2));
+      lpSpo2Last = spo2;
+      lpPaCO2Last = paCO2;
+    }
 
     // NOTE: unlike Unity's dedicated collapsed-lung morph target, the SVG has
     // no separate collapsed artwork -- collapse is approximated here via a

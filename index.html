@@ -48,16 +48,16 @@
               <span>R: <b id="lpRes">10</b></span>
             </div>
             <div class="lp-readout-row">
-              <span>SpO&#8322;: <b id="vSpO2">98</b>%</span>
-              <span>PaCO&#8322;: <b id="vPaCO2">40</b> mmHg</span>
+              <span class="o2-icon">SpO&#8322;: <b id="vSpO2">98</b>%</span>
+              <span class="co2-icon">PaCO&#8322;: <b id="vPaCO2">40</b> mmHg</span>
             </div>
           </div>
 
           <!-- Anatomy visualizer (2D fallback -- visible until Unity signals ready) -->
           <svg id="lungSvg" 
             width="300"
-            height="220"
-            viewBox="0 0 220 300" 
+            height="250"
+            viewBox="0 0 220 330" 
             xmlns="http://www.w3.org/2000/svg">
             <defs>
               <radialGradient id="lungGradL" cx="35%" cy="30%" r="75%">
@@ -108,7 +108,7 @@
             </g>
 
             <!-- alveoli inset panel -->
-            <g id="alveoliInset">
+            <g id="alveoliInset" transform-origin="14px 252px" transform="scale(1.5) translate(-110, -5)">
               <rect x="14" y="252" width="192" height="40" rx="6" fill="#15171a" stroke="#34383d" stroke-width="1"/>
               <text x="22" y="265" font-family="IBM Plex Mono, monospace" font-size="7" fill="#8c9094" letter-spacing="0.3">ALVEOLI</text>
 
@@ -124,6 +124,33 @@
                 <circle class="alv" cx="150" cy="278" r="4.4"/>
                 <circle class="alv" cx="172" cy="274" r="5.1"/>
                 <circle class="alv" cx="188" cy="277" r="4.2"/>
+              </g>
+
+              <!-- O2/CO2 exchange cues: fixed dot count, CSS-looped, intensity
+                   driven by --o2-intensity/--co2-intensity (set once per
+                   breath in updateLungVisual() from spo2/paCO2). O2 dots
+                   start at an alveolus and drift down to the capillary line;
+                   CO2 dots start at the capillary line and drift up into the
+                   alveolus -- reuses the existing capillary path as the
+                   exchange boundary rather than inventing new geometry. -->
+              <g id="gasExchange">
+                <circle class="gas-dot gas-dot-o2" cx="40" cy="276" r="2" style="animation-delay:0s"/>
+                <circle class="gas-dot gas-dot-o2" cx="58" cy="277" r="2" style="animation-delay:0.3s"/>
+                <circle class="gas-dot gas-dot-o2" cx="80" cy="274" r="2" style="animation-delay:0.5s"/>
+                <circle class="gas-dot gas-dot-o2" cx="105" cy="277" r="2" style="animation-delay:0.9s"/>
+                <circle class="gas-dot gas-dot-o2" cx="128" cy="275" r="2" style="animation-delay:1s"/>
+                <circle class="gas-dot gas-dot-o2" cx="150" cy="278" r="2" style="animation-delay:1.2s"/>
+                <circle class="gas-dot gas-dot-o2" cx="172" cy="274" r="2" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-o2" cx="188" cy="277" r="2" style="animation-delay:1.7s"/>
+
+                <circle class="gas-dot gas-dot-co2" cx="40" cy="283" r="2" style="animation-delay:0s"/>
+                <circle class="gas-dot gas-dot-co2" cx="58" cy="283" r="2" style="animation-delay:0.3s"/>
+                <circle class="gas-dot gas-dot-co2" cx="80" cy="283" r="2" style="animation-delay:0.5s"/>
+                <circle class="gas-dot gas-dot-co2" cx="105" cy="283" r="2" style="animation-delay:0.9s"/>
+                <circle class="gas-dot gas-dot-co2" cx="128" cy="283" r="2" style="animation-delay:1s"/>
+                <circle class="gas-dot gas-dot-co2" cx="150" cy="283" r="2" style="animation-delay:1.2s"/>
+                <circle class="gas-dot gas-dot-co2" cx="172" cy="283" r="2" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-co2" cx="188" cy="283" r="2" style="animation-delay:1.7s"/>
               </g>
             </g>
           </svg>

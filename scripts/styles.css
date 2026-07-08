@@ -15,6 +15,8 @@
     --magenta-dim: #7a2f43;
     --mono: 'IBM Plex Mono', 'SF Mono', Menlo, Consolas, monospace;
     --grotesk: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    --o2-color: #00ffff;
+    --co2-color: #c300ff;
 }
 
 * {
@@ -242,6 +244,55 @@ canvas#scopeCanvas {
     transition: transform 0.05s linear, fill 0.15s linear;
     transform-box: fill-box;
     transform-origin: center;
+}
+
+/* ---------- GAS EXCHANGE DOTS (O2/CO2 at the alveoli) ----------
+   Fixed dot count, each looping a short fade+drift on a staggered delay --
+   intensity (opacity ceiling) is the only thing JS ever touches, via the
+   --o2-intensity/--co2-intensity custom properties set once per breath in
+   updateLungVisual(). No per-dot JS control, no spawn/despawn. */
+#gasExchange {
+    --o2-intensity: 0.5;
+    --co2-intensity: 0.3;
+}
+.o2-icon::before {
+    content: "\25CF ";
+    font-size: 10px;
+    color: var(--o2-color);
+    font-family: var(--mono);
+}
+.co2-icon::before {
+    content: "\25CF ";
+    font-size: 10px;
+    color: var(--co2-color);
+    font-family: var(--mono);
+}
+.gas-dot {
+    pointer-events: none;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.gas-dot-o2 {
+    fill: var(--o2-color, #00ffff);
+    animation: gasO2Drift 1.8s ease-in-out infinite;
+}
+
+.gas-dot-co2 {
+    fill: var(--co2-color, #c300ff);
+    animation: gasCo2Drift 2.2s ease-in-out infinite;
+}
+
+@keyframes gasO2Drift {
+    0%   { opacity: 0; transform: translateY(0); }
+    35%  { opacity: var(--o2-intensity); }
+    100% { opacity: 0; transform: translateY(6px); }
+}
+
+@keyframes gasCo2Drift {
+    0%   { opacity: 0; transform: translateY(0); }
+    35%  { opacity: var(--co2-intensity); }
+    100% { opacity: 0; transform: translateY(-6px); }
 }
 
 #bronchL,
