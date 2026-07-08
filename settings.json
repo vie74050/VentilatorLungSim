@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "mode": "VC",
+  "mode": "PS",
   "settings": {
     "VC": {
       "fio2": 21,
@@ -23,8 +23,8 @@
     }
   },
   "patient": {
-    "compliance": 10,
-    "resistance": 4,
+    "compliance": 50,
+    "resistance": 10,
     "effort": 0,
     "leftCollapsed": true,
     "rightCollapsed": false
