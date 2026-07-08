@@ -223,6 +223,11 @@
 
   // We track Ppeak per-breath separately and reset cleanly:
   let breathPpeak = 0;
+  // Peak |flow| spans a full breath cycle (both the inspiratory push and the
+  // expiratory decay peak right after insp ends), so it's accumulated
+  // unconditionally each tick and finalized at the *next* breath's start
+  // rather than gated to a single phase like breathPpeak is.
+  let breathPeakFlowAbs = 0;
   let prevPhase = "insp";
   let lastBreathTimes = [];
 
@@ -230,6 +235,8 @@
     if(phase==="insp"){
       breathPpeak = Math.max(breathPpeak, Paw);
     }
+    breathPeakFlowAbs = Math.max(breathPeakFlowAbs, Math.abs(Flow*60)); // L/min, matches the flow panel's units
+
     const expStarted = (prevPhase==="insp" && phase==="exp");
     const inspStarted = (prevPhase==="exp" && phase==="insp");
 
@@ -237,8 +244,12 @@
       lastPpeak = breathPpeak;
       breathPpeak = 0;
       updateGasExchange();
+      pushAutoscaleSample("paw", lastPpeak);
+      pushAutoscaleSample("vol", lastVTi);
     }
     if(inspStarted){
+      pushAutoscaleSample("flow", breathPeakFlowAbs);
+      breathPeakFlowAbs = 0;
       lastBreathTimes.push(simTime);
       if(lastBreathTimes.length>6) lastBreathTimes.shift();
       if(lastBreathTimes.length>=2){
@@ -311,6 +322,33 @@
   }
 
   // ---------------- RENDER ----------------
+  // ---------------- SCOPE AUTOSCALE ----------------
+  // Real bedside monitors size each waveform panel off recent breath history
+  // rather than a fixed range picked at ventilator-setup time -- that's what
+  // this does. Avoids traces clipping off-panel for any setting combination
+  // that produces an unusually large breath (e.g. a high backup PC in PS
+  // mode), without hand-tuning a guess formula per mode.
+  const AUTOSCALE_BREATHS = 3;  // rolling window, in completed breaths
+  const AUTOSCALE_EASE = 0.06;  // per-frame ease toward target -- avoids the axis visibly snapping at each breath boundary
+  const autoscale = {
+    paw:  { floor: 40,  pad: 1.15, recent: [], target: 40,  display: 40  },
+    flow: { floor: 100, pad: 1.15, recent: [], target: 100, display: 100 }, // symmetric +/-
+    vol:  { floor: 600, pad: 1.3,  recent: [], target: 600, display: 600 }
+  };
+
+  function pushAutoscaleSample(kind, peakAbsValue){
+    const a = autoscale[kind];
+    a.recent.push(peakAbsValue);
+    if(a.recent.length > AUTOSCALE_BREATHS) a.recent.shift();
+    a.target = Math.max(a.floor, Math.max(...a.recent) * a.pad);
+  }
+
+  function easedAutoscale(kind){
+    const a = autoscale[kind];
+    a.display += (a.target - a.display) * AUTOSCALE_EASE;
+    return a.display;
+  }
+
   function render(){
     const w = canvas.clientWidth, h = canvas.clientHeight;
     ctx.clearRect(0,0,w,h);
@@ -330,14 +368,9 @@
   }
 
   function scaleFor(kind){
-    if(kind==="paw") return { min:-5, max: 40 };
-    if(kind==="flow") return { min:-100, max:100 };
-    if(kind==="vol") return { min:0, max: Math.max(600, settingsTVorPC()*1.3) };
-  }
-  function settingsTVorPC(){
-    if(mode==="VC") return settings.VC.tv;
-    if(mode==="PC") return settings.PC.pc*40; // rough vol scale guess
-    return 500;
+    if(kind==="paw") return { min:-5, max: easedAutoscale("paw") };
+    if(kind==="flow"){ const m = easedAutoscale("flow"); return { min:-m, max:m }; }
+    if(kind==="vol") return { min:0, max: easedAutoscale("vol") };
   }
   function scaleLabels(kind){
     const sc = scaleFor(kind);
@@ -609,7 +642,7 @@
     renderSettingsBar();
     $("modeNote").innerHTML = modeNotes[m];
     // reset breath state for a clean transition
-    phase = "insp"; phaseTime = 0; Vol = 0; breathPpeak = 0; expStartVol = 0;
+    phase = "insp"; phaseTime = 0; Vol = 0; breathPpeak = 0; breathPeakFlowAbs = 0; expStartVol = 0;
     lastVTe = 0; lastVTi = 0; lastBreathTimes = [];
   }
 
