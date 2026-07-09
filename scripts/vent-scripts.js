@@ -698,8 +698,31 @@
     // breath (updateGasExchange(), at the insp->exp transition), so gate the
     // DOM write the same way the C/R readouts above do.
     if (gasExchangeGroup && (spo2 !== lpSpo2Last || paCO2 !== lpPaCO2Last)) {
-      const o2Frac = Math.max(0, Math.min(1, (spo2 - 70) / 30)); // 70-100 sim range -> 0-1
-      const co2Frac = Math.max(0, Math.min(1, (paCO2 - 15) / 85)); // 15-100 sim range -> 0-1
+      // SpO2: plateau at full brightness across the clinically-acceptable
+      // range (>=90%, the standard "keep SpO2 >=90" target -- not just
+      // statistical normal), then a narrow, steep ramp down to 0 by 70%
+      // (severe hypoxemia). Narrow ramp = obvious dimming per point of
+      // desaturation, rather than a shallow gradient across the full sim range.
+      const o2Frac = spo2 >= 90 ? 1 : Math.max(0, (spo2 - 70) / 20);
+
+      // PaCO2: flat, dim baseline across the normal range (35-45 mmHg) --
+      // normal CO2 clearance shouldn't read as alarming. Ramps up toward
+      // full brightness in EITHER direction outside normal: above 45 toward
+      // 80 (hypercapnia/retention, the common case in ARDS/COPD/collapsed-lung
+      // scenarios here), or below 35 toward 20 (hypocapnia/hyperventilation).
+      const CO2_BASELINE = 0.2;
+      let co2Frac;
+      if (paCO2 >= 35 && paCO2 <= 45) {
+        co2Frac = CO2_BASELINE;
+      } else if (paCO2 > 45) {
+        co2Frac =
+          CO2_BASELINE +
+          (1 - CO2_BASELINE) * Math.min(1, (paCO2 - 45) / (80 - 45));
+      } else {
+        co2Frac =
+          CO2_BASELINE +
+          (1 - CO2_BASELINE) * Math.min(1, (35 - paCO2) / (35 - 20));
+      }
       gasExchangeGroup.style.setProperty("--o2-intensity", o2Frac.toFixed(2));
       gasExchangeGroup.style.setProperty("--co2-intensity", co2Frac.toFixed(2));
       lpSpo2Last = spo2;

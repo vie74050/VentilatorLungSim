@@ -251,10 +251,6 @@ canvas#scopeCanvas {
    intensity (opacity ceiling) is the only thing JS ever touches, via the
    --o2-intensity/--co2-intensity custom properties set once per breath in
    updateLungVisual(). No per-dot JS control, no spawn/despawn. */
-#gasExchange {
-    --o2-intensity: 0.5;
-    --co2-intensity: 0.3;
-}
 .o2-icon::before {
     content: "\25CF ";
     font-size: 10px;
@@ -267,6 +263,14 @@ canvas#scopeCanvas {
     color: var(--co2-color);
     font-family: var(--mono);
 }
+
+#gasExchange {
+    --o2-intensity: 0.5;
+    --co2-intensity: 0.3;
+    --o2-duration: 1.8s;
+    --co2-duration: 2.2s;
+}
+
 .gas-dot {
     pointer-events: none;
     transform-box: fill-box;
@@ -274,13 +278,19 @@ canvas#scopeCanvas {
 }
 
 .gas-dot-o2 {
-    fill: var(--o2-color, #00ffff);
-    animation: gasO2Drift 1.8s ease-in-out infinite;
+    fill: var(--o2-color);
+    animation-name: gasO2Drift;
+    animation-duration: var(--o2-duration);
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
 }
 
 .gas-dot-co2 {
-    fill: var(--co2-color, #c300ff);
-    animation: gasCo2Drift 2.2s ease-in-out infinite;
+    fill: var(--co2-color);
+    animation-name: gasCo2Drift;
+    animation-duration: var(--co2-duration);
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
 }
 
 @keyframes gasO2Drift {

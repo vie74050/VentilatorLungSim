@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "mode": "PS",
+  "mode": "VC",
   "settings": {
     "VC": {
       "fio2": 21,
