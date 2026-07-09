@@ -206,21 +206,32 @@ effectiveCompliance():
 
 #### 4.3 Anatomy Visualization Variables
 
-These don't affect Paw/Flow/Vol — they're purely for the visual (SVG or Unity):
+These don't affect Paw/Flow/Vol — they're purely for the visual (SVG or Unity).
+
+`derivedPatientFractions` convert patient and vent parameters to vars that drive the visualization:
 
 ```formula
+LUNGS
 fillFrac         = clamp(Vol / 0.8, 0, 1)                           (0.8 L ≈ visual full-scale)
 expGain          = 0.55 + (clamp(C_display,10,100) − 10)/90 × 0.6   (uses displayed C, not effective C)
-stiffFrac        = clamp((100 − C_display)/90, 0, 1)
-rFrac            = clamp((R − 4)/36, 0, 1)
+stiffFrac        = clamp((100 − C_display)/90, 0, 1)                ( 1 = darker, stiff to 0 = pink,normal)
+
+ALVEOLI
 alvScale         = 1 + fillFrac × 1.35 × expGain
+overDist         = Paw > 30 AND fillFrac > 0.6                      (color change if overextends)
+
+BRONCHIOLE
+rFrac            = clamp((R − 4)/36, 0, 1)
 bronchioleScale  = 1 − rFrac × 0.53
-overDist         = Paw > 30 AND fillFrac > 0.6
+
 ```
 
-`C_display` = `patient.compliance` (raw slider value, mL/cmH₂O), not `effectiveCompliance()`. `effectiveCompliance()` is scaled for the L/cmH₂O pressure equation and is out of range for this formula. `expGain`/`stiffFrac` represent tissue stretchiness on its own terms, independent of whether the other lung is collapsed; the collapse's system-level effect already shows up via `fillFrac` (driven by `Vol`, which does use effective compliance).
+For gas exchange, `shuntFrac` is calculated based on `stiffFrac` (C) and `rFrac` (R) to derive `paCO2` and `spO2`. 
+These drive the intensity of the O2 and CO2 particles.  
 
----
+See `updateGasExchange`.
+
+These are then used in `updateLungVisual`.
 
 ### 5. FiO₂ and gas exchange (SpO₂ / PaCO₂)
 

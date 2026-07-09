@@ -518,7 +518,6 @@
     );
 
     // CO2 is driven by ventilation, NOT FiO2 -- keeping these independent
-    // guards against the common misconception that "more O2 = less CO2".
     paCO2 = (0.863 * GAS.VCO2) / VA_Lmin; // alveolar ventilation equation
     paCO2 = Math.min(Math.max(paCO2, 15), 120);
 
@@ -544,9 +543,11 @@
     fillFrac = Math.max(0, Math.min(1, Vol / nominalMaxL));
     expGain = 0.55 + ((Math.min(Math.max(C, 10), 100) - 10) / 90) * 0.6;
     stiffFrac = Math.max(0, Math.min(1, (100 - C) / 90));
+    
     rFrac = Math.max(0, Math.min(1, (R - 4) / 36));
-    alvScale = 1 + fillFrac * 1.35 * expGain;
     bronchioleScale = 1 - rFrac * 0.53;
+    
+    alvScale = 1 + fillFrac * 1.35 * expGain;
     overDist = Paw > 30 && fillFrac > 0.6;
   }
 
@@ -558,10 +559,6 @@
     $("vMV").textContent = mv.toFixed(1);
     $("vVTi").textContent = lastVTi || "--";
     $("vVTe").textContent = lastVTe || "--";
-    const spo2El = $("vSpO2");
-    if (spo2El) spo2El.textContent = spo2.toFixed(0);
-    const co2El = $("vPaCO2");
-    if (co2El) co2El.textContent = paCO2.toFixed(0);
   }
 
   // ---------------- LUNG VISUAL ----------------
@@ -590,6 +587,7 @@
 
   const COLLAPSED_SCALE = 0.78;
   const COLLAPSED_COLOR = "rgb(130,128,124)";
+  const COLLAPSED_BRIGHTNESS = 0.7;
 
   // A collapsed lung doesn't breathe: it holds a small deflated scale and a
   // flat, desaturated grey rather than following Vol/compliance like the
@@ -604,7 +602,7 @@
   ) {
     if (collapsed) {
       lungEl.style.transform = `scale(${COLLAPSED_SCALE})`;
-      lungEl.style.filter = "brightness(0.7)";
+      lungEl.style.filter = `brightness(${COLLAPSED_BRIGHTNESS})`;
       if (pathEl) pathEl.style.fill = COLLAPSED_COLOR;
     } else {
       lungEl.style.transform = `scale(${normalScale.toFixed(4)})`;
@@ -643,6 +641,12 @@
     alvCircles.forEach((c) => {
       c.style.transform = `scale(${alvScale.toFixed(4)})`;
     });
+
+    // Paw overdistension cue: alveoli flush warning-amber if pressure climbs high while near full inflation
+    alvCircles.forEach((c) => {
+      c.style.fill = overDist ? "#e0a23d" : "#e8978a";
+    });
+
 
     // resistance -> visually narrow / thicken & darken the airway (bronchi).
     // A collapsed lung's own bronchus is shown occluded (thin, dark) instead
@@ -684,12 +688,7 @@
     if (R !== lpResLast) {
       $("lpRes").textContent = R;
       lpResLast = R;
-    }
-
-    // Paw overdistension cue: alveoli flush warning-amber if pressure climbs high while near full inflation
-    alvCircles.forEach((c) => {
-      c.style.fill = overDist ? "#e0a23d" : "#e8978a";
-    });
+    }   
 
     // O2/CO2 exchange dot intensity -- spo2/paCO2 only change once per
     // breath (updateGasExchange(), at the insp->exp transition), so gate the
@@ -724,12 +723,14 @@
       gasExchangeGroup.style.setProperty("--co2-intensity", co2Frac.toFixed(2));
       lpSpo2Last = spo2;
       lpPaCO2Last = paCO2;
+
+      // update readout
+      const spo2El = $("lpSpO2");
+      if (spo2El) spo2El.textContent = spo2.toFixed(0);
+      const co2El = $("lpPaCO2");
+      if (co2El) co2El.textContent = paCO2.toFixed(0);
     }
 
-    // NOTE: unlike Unity's dedicated collapsed-lung morph target, the SVG has
-    // no separate collapsed artwork -- collapse is approximated here via a
-    // fixed deflated scale + desaturated grey fill + occluded bronchus,
-    // applied per-side in applyLungSide() above.
   }
 
   // ---------------- SETTINGS BAR (device bottom strip) ----------------
