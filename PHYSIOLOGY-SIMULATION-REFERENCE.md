@@ -30,10 +30,8 @@ Te (expiratory time)  = totalCycle − Ti
 
 ```formula
 targetVL = tv / 1000                          (mL -> L)
-peakFlow = targetVL / Ti × 1.15                (L/s)
-
-for the first 85% of Ti:  Flow = peakFlow
-for the last 15% of Ti:   Flow tapers linearly to 0
+peakFlow = targetVL / Ti × rampAmt            (L/s)
+ rampAmt (1.1-2) is a visual modifier so starts slightly higher, then decays
 
 Vol += Flow × DT                               (integrated each 20ms tick)
 Paw = PEEP + Vol/C + R × Flow                  ← pressure is the RESULT
@@ -74,6 +72,7 @@ drive = Paw − PEEP − Vol/C
 Flow = max(drive / R, 0)                        ← flow, and therefore volume, is DERIVED from pressure
 Vol += Flow × DT
 ```
+
 Lower C or higher R lowers VTe; Ppeak is fixed by the setting.
 
 CHECK: expect decrease compliance or increased resistance makes **VTe fall** in PC mode instead of Ppeak rising since the pressure target is fixed by the setting, so the same driving pressure moves less air when the lungs are stiffer or more obstructed.

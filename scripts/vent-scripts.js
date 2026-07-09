@@ -127,18 +127,14 @@
 
       if (phase === "insp") {
         // decelerating-ish square flow to mimic image: near-constant flow producing volume ramp
-        const peakFlowLs = (targetVL / Ti) * 2; // L/s, slightly higher than mean to taper at end
-        let f;
+        const peakFlowLs = (targetVL / Ti) * 2; // L/s,  higher than mean to ramp down to zero at end of inspiration
         const frac = phaseTime / Ti;
-
-        f = peakFlowLs * ( (1 - frac)); // ramp down across rest of inspiration
+        let f = peakFlowLs * ( 1 - frac ); // ramp down (flat) across rest of inspiration
         
         Flow = Math.max(f, 0);
         
-        Vol += Flow * DT;
+        Vol += Vol < targetVL ? Flow * DT : 0;
         
-        if (Vol > targetVL) Vol = targetVL;
-
         Paw = s.peep + Vol / C + R * Flow;
         if (phaseTime >= Ti) {
           phase = "exp";
@@ -360,16 +356,16 @@
 
   // ---------------- RENDER ----------------
   // ---------------- SCOPE AUTOSCALE ----------------
-  // Real bedside monitors size each waveform panel off recent breath history
-  // rather than a fixed range picked at ventilator-setup time -- that's what
-  // this does. Avoids traces clipping off-panel for any setting combination
+  // Resize each waveform panel off recent breath history
+  // rather than a fixed range picked at ventilator-setup time. 
+  // Avoids traces clipping off-panel for any setting combination
   // that produces an unusually large breath (e.g. a high backup PC in PS
-  // mode), without hand-tuning a guess formula per mode.
+  // mode).
   const AUTOSCALE_BREATHS = 3; // rolling window, in completed breaths
   const AUTOSCALE_EASE = 0.06; // per-frame ease toward target -- avoids the axis visibly snapping at each breath boundary
   const autoscale = {
-    paw: { floor: 40, pad: 1.15, recent: [], target: 40, display: 40 },
-    flow: { floor: 100, pad: 1.15, recent: [], target: 100, display: 100 }, // symmetric +/-
+    paw: { floor: 40, pad: 1.1, recent: [], target: 40, display: 40 },
+    flow: { floor: 100, pad: 1.1, recent: [], target: 100, display: 100 }, // symmetric +/-
     vol: { floor: 600, pad: 1.3, recent: [], target: 600, display: 600 },
   };
 
