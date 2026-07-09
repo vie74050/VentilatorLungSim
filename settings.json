@@ -23,8 +23,8 @@
     }
   },
   "patient": {
-    "compliance": 24,
-    "resistance": 10,
+    "compliance": 100,
+    "resistance": 4,
     "effort": 0,
     "leftCollapsed": false,
     "rightCollapsed": false
