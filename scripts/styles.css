@@ -460,8 +460,15 @@ canvas#scopeCanvas {
 }
 
 /* ---------- CONTROL DECK ---------- */
+.deck, 
+.deck * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .deck {
     margin-top: 30px;
+    
 }
 
 .deck-actions {
