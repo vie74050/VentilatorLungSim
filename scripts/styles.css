@@ -243,7 +243,7 @@ canvas#scopeCanvas {
     stroke-width: 0.8;
     transition: transform 0.05s linear, fill 0.15s linear;
     transform-box: fill-box;
-    transform-origin: center;
+    transform-origin: bottom center;
 }
 
 /* ---------- GAS EXCHANGE DOTS (O2/CO2 at the alveoli) ----------

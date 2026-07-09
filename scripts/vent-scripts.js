@@ -129,12 +129,12 @@
         // decelerating-ish square flow to mimic image: near-constant flow producing volume ramp
         const peakFlowLs = (targetVL / Ti) * 2; // L/s,  higher than mean to ramp down to zero at end of inspiration
         const frac = phaseTime / Ti;
-        let f = peakFlowLs * ( 1 - frac ); // ramp down (flat) across rest of inspiration
-        
+        let f = peakFlowLs * (1 - frac); // ramp down (flat) across rest of inspiration
+
         Flow = Math.max(f, 0);
-        
+
         Vol += Vol < targetVL ? Flow * DT : 0;
-        
+
         Paw = s.peep + Vol / C + R * Flow;
         if (phaseTime >= Ti) {
           phase = "exp";
@@ -357,7 +357,7 @@
   // ---------------- RENDER ----------------
   // ---------------- SCOPE AUTOSCALE ----------------
   // Resize each waveform panel off recent breath history
-  // rather than a fixed range picked at ventilator-setup time. 
+  // rather than a fixed range picked at ventilator-setup time.
   // Avoids traces clipping off-panel for any setting combination
   // that produces an unusually large breath (e.g. a high backup PC in PS
   // mode).
@@ -543,10 +543,10 @@
     fillFrac = Math.max(0, Math.min(1, Vol / nominalMaxL));
     expGain = 0.55 + ((Math.min(Math.max(C, 10), 100) - 10) / 90) * 0.6;
     stiffFrac = Math.max(0, Math.min(1, (100 - C) / 90));
-    
+
     rFrac = Math.max(0, Math.min(1, (R - 4) / 36));
     bronchioleScale = 1 - rFrac * 0.53;
-    
+
     alvScale = 1 + fillFrac * 1.35 * expGain;
     overDist = Paw > 30 && fillFrac > 0.6;
   }
@@ -647,7 +647,6 @@
       c.style.fill = overDist ? "#e0a23d" : "#e8978a";
     });
 
-
     // resistance -> visually narrow / thicken & darken the airway (bronchi).
     // A collapsed lung's own bronchus is shown occluded (thin, dark) instead
     // of following the resistance slider, since the collapse itself -- not
@@ -688,7 +687,7 @@
     if (R !== lpResLast) {
       $("lpRes").textContent = R;
       lpResLast = R;
-    }   
+    }
 
     // O2/CO2 exchange dot intensity -- spo2/paCO2 only change once per
     // breath (updateGasExchange(), at the insp->exp transition), so gate the
@@ -721,6 +720,21 @@
       }
       gasExchangeGroup.style.setProperty("--o2-intensity", o2Frac.toFixed(2));
       gasExchangeGroup.style.setProperty("--co2-intensity", co2Frac.toFixed(2));
+
+      // O2/CO2 exchange dot anim duration. This is purely visual, not physiologic.
+      const DUR_MAX = 5,
+            DUR_MIN = 1.0;
+      const o2Dur = DUR_MAX - (DUR_MAX - DUR_MIN) * o2Frac;
+      const co2Dur = DUR_MAX - (DUR_MAX - DUR_MIN) * co2Frac;
+      gasExchangeGroup.style.setProperty(
+        "--o2-duration",
+        o2Dur.toFixed(2) + "s",
+      );
+      gasExchangeGroup.style.setProperty(
+        "--co2-duration",
+        co2Dur.toFixed(2) + "s",
+      );
+
       lpSpo2Last = spo2;
       lpPaCO2Last = paCO2;
 
@@ -730,7 +744,6 @@
       const co2El = $("lpPaCO2");
       if (co2El) co2El.textContent = paCO2.toFixed(0);
     }
-
   }
 
   // ---------------- SETTINGS BAR (device bottom strip) ----------------

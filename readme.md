@@ -212,24 +212,19 @@ These don't affect Paw/Flow/Vol — they're purely for the visual (SVG or Unity)
 
 ```formula
 LUNGS
-fillFrac         = clamp(Vol / 0.8, 0, 1)                           (0.8 L ≈ visual full-scale)
-expGain          = 0.55 + (clamp(C_display,10,100) − 10)/90 × 0.6   (uses displayed C, not effective C)
-stiffFrac        = clamp((100 − C_display)/90, 0, 1)                ( 1 = darker, stiff to 0 = pink,normal)
+fillFrac        = clamp(Vol / 0.8, 0, 1)                           (0.8 L ≈ visual full-scale)
+expGain         = 0.55 + (clamp(C_display,10,100) − 10)/90 × 0.6   (uses displayed C, not effective C)
+stiffFrac       = clamp((100 − C_display)/90, 0, 1)                ( 1 = darker, stiff to 0 = pink,normal)
 
 ALVEOLI
-alvScale         = 1 + fillFrac × 1.35 × expGain
-overDist         = Paw > 30 AND fillFrac > 0.6                      (color change if overextends)
+alvScale        = 1 + fillFrac × 1.35 × expGain
+overDist        = Paw > 30 AND fillFrac > 0.6                      (color change if overextends)
 
 BRONCHIOLE
-rFrac            = clamp((R − 4)/36, 0, 1)
-bronchioleScale  = 1 − rFrac × 0.53
+rFrac           = clamp((R − 4)/36, 0, 1)
+bronchioleScale = 1 − rFrac × 0.53
 
 ```
-
-For gas exchange, `shuntFrac` is calculated based on `stiffFrac` (C) and `rFrac` (R) to derive `paCO2` and `spO2`. 
-These drive the intensity of the O2 and CO2 particles.  
-
-See `updateGasExchange`.
 
 These are then used in `updateLungVisual`.
 
@@ -246,6 +241,8 @@ FiO₂ does not appear in `step()`. It feeds a separate gas exchange calculation
 | Shunt fraction | Compliance, resistance, collapsed-lung state |
 
 #### 5.2 Calculation
+
+Using GAS EXCHANGE constants for atm pressure, ph...etc.
 
 ```formula
 vtL = lastVTe / 1000                         (last breath's exhaled volume, L)
