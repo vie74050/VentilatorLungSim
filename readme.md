@@ -1,15 +1,38 @@
-# BCIT Ventilator Simulator — Physiologic Simulation Reference
+# BCIT Ventilator Simulator
 
-Control-by-control mapping of operator inputs to simulation behavior, with the exact formulas from `vent-scripts.js`.
+A web-based training simulator for mechanical ventilation that models core respiratory mechanics and gas-exchange trends. It lets users adjust ventilator controls and set patient parameters to visualize pressure, flow, volume changes, and gas exchange.
 
-Conventions:
+## Development Reference
 
-- **C** = effective compliance, L/cmH₂O (`patient.compliance / 1000`, adjusted for collapsed lung — §4.2)
-- **R** = airway resistance, cmH₂O/L/s (`patient.resistance`, used directly)
+Intended endpoint will be an HTML page that can be deployed to D2L as an all client-side, no-build, single content page.
 
----
+`vent-scripts.js` (wrapped in an IIFE, no imports/exports, no bundler).  
+It draws the ventilator control panel and continuously simulates a "patient" breathing on that ventilator, at 50 simulation steps per second, rendering the scrolling waveforms and driving the svg & webGl animations.
 
-## 1. Ventilator settings — Volume Control (VC) mode
+### Physiologic Simulation Overview
+
+The "patient" is modeled as one elastic balloon (a **single-compartment lung model**), governed by one equation used everywhere in `step()`:
+
+```formula
+Paw = PEEP + Vol/Compliance + Resistance × Flow
+```
+
+**PEEP** = baseline pressure the vent maintains between breaths.
+
+**Compliance (C)** = effective compliance, L/cmH₂O (`patient.compliance / 1000`, adjusted for collapsed lung — §4.2)
+
+- how stretchy the lungs are.
+- Low C = stiff lungs (e.g. ARDS/fibrosis) → same volume needs much more pressure.
+- High C = floppy lungs (e.g. emphysema).
+
+**Resistance (R)** = airway resistance, cmH₂O/L/s (`patient.resistance`, used directly)  
+
+- how narrow/clogged the airway is.
+- High R = more pressure lost just moving air through the tube, independent of lung stretch.
+
+Below documents the different manipulation of this under each **Ventilator Mode**, and how the visualizations are driven.
+
+### 1. Ventilator settings — Volume Control (VC) mode
 
 | Control | Slider range | Variable | Directly affects |
 | --- | --- | --- | --- |
@@ -49,7 +72,7 @@ Paw = PEEP + Vol/C
 
 ---
 
-## 2. Ventilator settings — Pressure Control (PC) mode
+### 2. Ventilator settings — Pressure Control (PC) mode
 
 | Control | Slider range | Variable | Directly affects |
 | --- | --- | --- | --- |
@@ -81,7 +104,7 @@ CHECK: expect decrease compliance or increased resistance makes **VTe fall** in 
 
 ---
 
-## 3. Ventilator settings — PS/CPAP mode
+### 3. Ventilator settings — PS/CPAP mode
 
 | Control | Slider range | Variable | Directly affects |
 | --- | --- | --- | --- |
@@ -125,7 +148,7 @@ trigDip = −0.3 × effort × sin(π × progressThroughWindow)
 Paw = PEEP + Vol/C + trigDip
 ```
 
-### 3.1 Backup pressure target
+#### 3.1 Backup pressure target
 
 Apnea backup breaths use `backupPC`, not `PS`. `PS` is an assist pressure on top of the patient's own effort; a backup breath has zero patient effort, so it needs a full pressure-controlled target to move adequate volume. Defaults: PS = 5, backupPC = 15.
 
@@ -136,7 +159,7 @@ Effort dropping to 0 changes two things simultaneously:
 
 ---
 
-## 4. Patient mechanics controls
+### 4. Patient mechanics controls
 
 | Control | Slider range | Variable | Physiologically represents |
 | --- | --- | --- | --- |
@@ -146,7 +169,7 @@ Effort dropping to 0 changes two things simultaneously:
 | Left lung collapsed | checkbox | `patient.leftCollapsed` | Pneumothorax / atelectasis / mainstem intubation of the *right* bronchus |
 | Right lung collapsed | checkbox | `patient.rightCollapsed` | Same, opposite side |
 
-### 4.1 Compliance and resistance
+#### 4.1 Compliance and resistance
 
 One equation, shared by all modes:
 
@@ -166,7 +189,7 @@ Flow(t) = −(expStartVol/τ) × e^(−t/τ)
 
 Larger τ (high R, high C) → slower decay → longer exhalation.
 
-### 4.2 Collapsed lung — effective compliance
+#### 4.2 Collapsed lung — effective compliance
 
 Changes which compliance value flows into the equations above:
 
@@ -181,7 +204,7 @@ effectiveCompliance():
 
 55/45 split reflects the right lung's larger normal volume. This value feeds `Paw = PEEP + Vol/C + R×Flow` directly — Ppeak rises in VC, VTe falls in PC/PS. No separate collapsed-lung branch exists; it's mediated entirely through this substitution.
 
-### 4.3 Anatomy Visualization Variables
+#### 4.3 Anatomy Visualization Variables
 
 These don't affect Paw/Flow/Vol — they're purely for the visual (SVG or Unity):
 
@@ -199,11 +222,11 @@ overDist         = Paw > 30 AND fillFrac > 0.6
 
 ---
 
-## 5. FiO₂ and gas exchange (SpO₂ / PaCO₂)
+### 5. FiO₂ and gas exchange (SpO₂ / PaCO₂)
 
 FiO₂ does not appear in `step()`. It feeds a separate gas exchange calculation, run once per breath at the insp→exp transition.
 
-### 5.1 Dependencies
+#### 5.1 Dependencies
 
 | Signal | Driven by |
 | --- | --- |
@@ -211,7 +234,7 @@ FiO₂ does not appear in `step()`. It feeds a separate gas exchange calculation
 | PaCO₂ | Alveolar minute ventilation (rate × volume) |
 | Shunt fraction | Compliance, resistance, collapsed-lung state |
 
-### 5.2 Calculation
+#### 5.2 Calculation
 
 ```formula
 vtL = lastVTe / 1000                         (last breath's exhaled volume, L)
@@ -234,17 +257,17 @@ spo2 = 100 / (23400/(paO2³ + 150×paO2) + 1)  (Severinghaus approximation)
 spo2 = clamp(spo2, 40, 100)
 ```
 
-### 5.3 Shunt refractoriness
+#### 5.3 Shunt refractoriness
 
 `shuntFrac` multiplies `PAO2` before it becomes `paO2`. In high-shunt cases (bad compliance, collapsed lung), raising FiO₂ produces a diminishing SpO₂ return — this follows directly from the formula, not a special case.
 
-### 5.4 Update cadence
+#### 5.4 Update cadence
 
 Gas exchange values are recalculated **once per completed breath** (at the insp→exp transition), not every 20ms tick like Paw/Flow/Vol. Real pulse oximetry has its own lag too, so per-breath updates are a reasonable approximation and avoid adding this calculation to the 50Hz hot path.
 
 ---
 
-## 6. Quick-reference: control → outcome matrix
+### 6. Quick-reference: control → outcome matrix
 
 | If you increase... | Ppeak (VC) | VTe (PC/PS) | Exhalation time | SpO₂ | PaCO₂ |
 | --- | --- | --- | --- | --- | --- |
@@ -260,9 +283,8 @@ Gas exchange values are recalculated **once per completed breath** (at the insp�
 
 ---
 
-## 7. Not modeled
+### 7. To be discussed with SMEs
 
-- **No auto-PEEP / breath-stacking dynamics** — pushing RR high enough to shorten Te below what's needed to fully exhale doesn't currently trap volume breath-over-breath; each breath's exhalation is calculated independently from a clean baseline.
-- **No hemodynamic model** — no cardiac output, no interaction between intrathoracic pressure and venous return, no effect of PEEP on blood pressure.
-- **No temperature, pH, or full CO₂ transport model** — PaCO₂ here is a simplified alveolar-ventilation-only estimate, not a full metabolic/buffering model.
-- **No leak, disconnect, or alarm conditions.**
+- **Hemodynamic model, end organ impacts** — cardiac output, interaction between intrathoracic pressure and venous return, effect of PEEP on brain, bp...etc.?
+- **Temperature, pH, or full CO₂ transport model** — PaCO₂ here is a simplified alveolar-ventilation-only estimate, not a full metabolic/buffering model.
+- **Equipment conditions: leak, disconnect, or alarm conditions.**
