@@ -127,17 +127,18 @@
 
       if (phase === "insp") {
         // decelerating-ish square flow to mimic image: near-constant flow producing volume ramp
-        const peakFlowLs = (targetVL / Ti) * 1.15; // L/s, slightly higher than mean to taper at end
+        const peakFlowLs = (targetVL / Ti) * 2; // L/s, slightly higher than mean to taper at end
         let f;
         const frac = phaseTime / Ti;
-        if (frac < 0.85) {
-          f = peakFlowLs;
-        } else {
-          f = peakFlowLs * (1 - (frac - 0.85) / 0.15);
-        }
+
+        f = peakFlowLs * ( (1 - frac)); // ramp down across rest of inspiration
+        
         Flow = Math.max(f, 0);
+        
         Vol += Flow * DT;
+        
         if (Vol > targetVL) Vol = targetVL;
+
         Paw = s.peep + Vol / C + R * Flow;
         if (phaseTime >= Ti) {
           phase = "exp";

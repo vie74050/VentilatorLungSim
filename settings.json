@@ -6,7 +6,7 @@
       "fio2": 21,
       "peep": 5,
       "rr": 16,
-      "tv": 450
+      "tv": 500
     },
     "PC": {
       "fio2": 21,
@@ -23,7 +23,7 @@
     }
   },
   "patient": {
-    "compliance": 50,
+    "compliance": 24,
     "resistance": 10,
     "effort": 0,
     "leftCollapsed": false,
