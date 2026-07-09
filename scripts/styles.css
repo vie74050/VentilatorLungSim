@@ -464,37 +464,19 @@ canvas#scopeCanvas {
     margin-top: 30px;
 }
 
-.deck-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 14px;
-}
-
-.deck-head h2 {
-    font-size: 15px;
-    margin: 0;
-    font-weight: 600;
-}
-
-.deck-head .tag {
-    font-size: 10.5px;
-    color: var(--magenta);
-    font-family: var(--mono);
-    background: rgba(232, 51, 110, .1);
-    padding: 2px 7px;
-    border-radius: 5px;
-    border: 1px solid rgba(232, 51, 110, .25);
-}
-
 .deck-actions {
     display: flex;
     gap: 8px;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 18px 14px;
+    margin-top: 14px;
+    justify-content: center;
 }
 
 .deck-action-btn {
-    background: var(--bg-tile);
+    background: var(--bg-deep);
     border: 1px solid var(--line);
     color: var(--text-dim);
     border-radius: 7px;

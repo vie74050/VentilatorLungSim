@@ -215,20 +215,12 @@
 
   <!-- ================= CONTROL DECK ================= -->
   <div class="deck">
-    <div class="deck-head">
-      <h2>Operator controls</h2>
-      <div class="deck-actions">
-        <button id="btnSaveSettings" class="deck-action-btn" type="button">Save</button>
-        <button id="btnLoadSettings" class="deck-action-btn" type="button">Load</button>
-        <input type="file" id="loadFileInput" accept="application/json,.json" style="display:none;">
-      </div>
-    </div>
 
     <div class="deck-grid">
 
       <!-- VENTILATOR SETTINGS CARD -->
       <div class="card">
-        
+        <h3>Ventilator controls</h3>
         <div id="vcGroup" class="modegroup">
           <div class="slider-row">
             <div class="top"><label>FiO&#8322;</label><span class="readout"><span id="rFiO2">40</span>%</span></div>
@@ -342,9 +334,15 @@
       </div>
 
     </div>
+
+    <div class="deck-actions">
+      <button id="btnSaveSettings" class="deck-action-btn" type="button">Save</button>
+      <button id="btnLoadSettings" class="deck-action-btn" type="button">Load</button>
+      <input type="file" id="loadFileInput" accept="application/json,.json" style="display:none;">
+    </div>
   </div>
 
-  <footer>Educational simulation only — not a medical device, not for clinical decision-making.</footer>
+  <footer>For educational use only - 🄯 Share with attribution, no modifications.</footer>
 </div>
 
 <script src="scripts/unity-bridge.js"></script>
