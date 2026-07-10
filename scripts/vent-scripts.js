@@ -843,7 +843,7 @@
   function switchMode(m) {
     mode = m;
     document
-      .querySelectorAll(".modebtn")
+      .querySelectorAll(".modebtn[data-mode]")
       .forEach((b) => b.classList.toggle("active", b.dataset.mode === m));
     $("vcGroup").style.display = m === "VC" ? "" : "none";
     $("pcGroup").style.display = m === "PC" ? "" : "none";
@@ -863,8 +863,19 @@
     lastBreathTimes = [];
   }
 
-  document.querySelectorAll(".modebtn").forEach((btn) => {
+  document.querySelectorAll(".modebtn[data-mode]").forEach((btn) => {
     btn.addEventListener("click", () => switchMode(btn.dataset.mode));
+  });
+
+  // Deck tabs
+  document.querySelectorAll(".deck-tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.tab;
+      document.querySelectorAll(".deck-tab").forEach((b) => b.classList.toggle("active", b === btn));
+      document.querySelectorAll("[data-tab-panel]").forEach((panel) => {
+        panel.style.display = panel.dataset.tabPanel === target ? "" : "none";
+      });
+    });
   });
 
   // ---------------- CONTROL FIELD REGISTRY ----------------
