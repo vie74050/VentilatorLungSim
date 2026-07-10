@@ -1,0 +1,44 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get commit date
+        id: gitdate
+        run: |
+          DATE=$(git log -1 --format=%cd --date=short)
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+
+      - name: Generate version-info.json
+        run: |
+          DATE="${{ steps.gitdate.outputs.date }}"
+          DATE_FORMATTED=$(echo "$DATE" | sed 's/-/./g')
+          echo "{ \"version\": \"0.1\", \"date\": \"$DATE_FORMATTED\" }" > version-info.json
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4
