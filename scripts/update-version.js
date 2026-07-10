@@ -2,7 +2,8 @@
 
     async function updateVersion() {
         try {
-            const res = await fetch("version-info.json"); // github Pages workflow build artifact will generate this file with version info on push to master
+            // github Pages workflow build artifact will generate this file with version info on push to master
+            const res = await fetch("version-info.json"); 
             if (!res.ok) return;
 
             const info = await res.json();
