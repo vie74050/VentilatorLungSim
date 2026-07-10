@@ -1,5 +1,6 @@
 :root {
-    --bg-deep: #162e44;
+    --bg: #162e44;
+    --bg-deep: #161e2b;
     --bg-panel: #1d2023;
     --bg-screen: #1a1d20;
     --bg-tile: #23262a;
@@ -27,7 +28,7 @@ html,
 body {
     margin: 0;
     padding: 0;
-    background: var(--bg-deep);
+    background: var(--bg);
     color: var(--text-hi);
     font-family: var(--grotesk);
     -webkit-font-smoothing: antialiased;
@@ -494,7 +495,7 @@ canvas#scopeCanvas {
 }
 
 .deck-action-btn {
-    background: var(--bg-deep);
+    background: var(--bg-tile);
     border: 1px solid var(--line);
     color: var(--text-dim);
     border-radius: 7px;
@@ -528,6 +529,9 @@ canvas#scopeCanvas {
     border-radius: 12px;
     padding: 18px 18px 14px;
 }
+.setup-ui {
+    background: var(--bg-deep);
+}
 
 .card h3 {
     font-size: 11.5px;
@@ -541,7 +545,7 @@ canvas#scopeCanvas {
 .modeselect {
     display: flex;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 5px;
 }
 
 .modebtn {
@@ -693,9 +697,10 @@ input[type=range].patient::-moz-range-thumb {
 
 .note {
     font-size: 14px;
+    min-height: 54px;
     color: var(--magenta);
     background: rgba(232, 51, 110, .1);
-    padding: 2px 7px;
+    padding: 7px;
     border-radius: 5px;
     border: 1px solid rgba(232, 51, 110, .25);
 }
