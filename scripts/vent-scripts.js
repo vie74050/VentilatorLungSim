@@ -588,6 +588,8 @@
   const bronchL = $("bronchL"),
     bronchR = $("bronchR");
   const alvCircles = document.querySelectorAll(".alv");
+  const o2Circles = document.querySelectorAll(".gas-dot-o2");
+  const co2Circles = document.querySelectorAll(".gas-dot-co2");
   const gasExchangeGroup = $("gasExchange");
   let lpCompLast = null,
     lpResLast = null;
@@ -639,6 +641,7 @@
     const C = patient.compliance;
     const R = patient.resistance;
 
+    /* LUNGS */
     const lungScale = 1 + fillFrac * 0.22 * expGain;
     const breathingBrightness = 1 + fillFrac * 0.12;
 
@@ -657,14 +660,7 @@
       breathingBrightness,
     );
 
-    alvCircles.forEach((c) => {
-      c.style.transform = `scale(${alvScale.toFixed(4)})`;
-    });
-
-    // Paw overdistension cue: alveoli flush warning-amber if pressure climbs high while near full inflation
-    alvCircles.forEach((c) => {
-      c.style.fill = overDist ? "#e0a23d" : "#e8978a";
-    });
+    /* BRONCHI */
 
     // resistance -> visually narrow / thicken & darken the airway (bronchi).
     // A collapsed lung's own bronchus is shown occluded (thin, dark) instead
@@ -707,6 +703,31 @@
       $("lpRes").textContent = R;
       lpResLast = R;
     }
+
+    /* ALVEOLI */
+    // Check shunt fraction, shuntFrac, to determine how many alveoli are "open" (pink) vs "closed" (grey). 
+    // - visual cue for the user to see how much of the lung is effectively participating in gas exchange.
+    const openAlvCount = Math.round((1 - shuntFrac) * alvCircles.length);
+    alvCircles.forEach((c, i) => {
+      if (i < openAlvCount) {
+        c.style.transform = `scale(${alvScale.toFixed(4)})`;
+
+        // Paw overdistension cue: alveoli flush warning-amber if pressure climbs high while near full inflation
+        c.style.fill = overDist ? "#e0a23d" : "#e8978a";
+
+        // turn on corresponding gas dots
+        o2Circles[i].classList.remove("collapsed");
+        co2Circles[i].classList.remove("collapsed");
+
+
+      }else {
+        c.style.transform = `scale(${COLLAPSED_SCALE})`;
+        c.style.fill = COLLAPSED_COLOR;
+        o2Circles[i].classList.add("collapsed");
+        co2Circles[i].classList.add("collapsed");
+      }
+
+    });
 
     // O2/CO2 exchange dot intensity -- spo2/paCO2 only change once per
     // breath (updateGasExchange(), at the insp->exp transition), so gate the

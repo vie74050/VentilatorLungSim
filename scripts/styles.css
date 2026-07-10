@@ -275,6 +275,7 @@ canvas#scopeCanvas {
     pointer-events: none;
     transform-box: fill-box;
     transform-origin: center;
+    animation-play-state: running;
 }
 
 .gas-dot-o2 {
@@ -293,6 +294,12 @@ canvas#scopeCanvas {
     animation-iteration-count: infinite;
 }
 
+.gas-dot.collapsed {
+    animation-name: gasCollapsed;
+    animation-duration: 0.5s;
+    animation-timing-function: linear;
+}
+
 @keyframes gasO2Drift {
     0%   { opacity: 0; transform: translateY(0); }
     35%  { opacity: var(--o2-intensity); }
@@ -303,6 +310,10 @@ canvas#scopeCanvas {
     0%   { opacity: 0; transform: translateY(0); }
     35%  { opacity: var(--co2-intensity); }
     100% { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes gasCollapsed {
+    0%   { opacity: 0; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(0); }
 }
 
 #bronchL,
