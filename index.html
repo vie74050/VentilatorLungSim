@@ -59,17 +59,7 @@
             height="250"
             viewBox="0 0 220 330" 
             xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <radialGradient id="lungGradL" cx="35%" cy="30%" r="75%">
-                <stop offset="0%" stop-color="#ffb3a8"/>
-                <stop offset="100%" stop-color="#d9685c"/>
-              </radialGradient>
-              <radialGradient id="lungGradR" cx="65%" cy="30%" r="75%">
-                <stop offset="0%" stop-color="#ffb3a8"/>
-                <stop offset="100%" stop-color="#d9685c"/>
-              </radialGradient>
-            </defs>
-
+            
             <!-- trachea -->
             <g id="trachea">
               <rect x="103" y="10" width="14" height="38" rx="4" fill="#e7c9b8"/>
@@ -81,29 +71,33 @@
             </g>
 
             <!-- bronchi -->
-            <path id="bronchL" d="M108,46 C95,58 78,64 64,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
-            <path id="bronchR" d="M112,46 C126,58 144,64 158,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
+            <path id="bronchR" d="M108,46 C95,58 78,64 64,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
+            <path id="bronchL" d="M112,46 C126,58 144,64 158,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
 
             <!-- lungs (these scale/breathe) -->
-            <g id="lungL" style="transform-origin:64px 100px;">
-              <path d="M64,72
-                       C30,78 14,115 16,158
-                       C18,196 30,224 56,232
-                       C70,236 78,224 78,200
-                       L78,95
-                       C78,80 73,73 64,72 Z"
-                    fill="url(#lungGradL)" stroke="#b35a4d" stroke-width="1.5"/>
+            <g id="lungR" style="transform-origin:100px 80px;">
+              <image
+                id="lungRimg"
+                href="scripts/assets/rightLung.svg"
+                x="-10"
+                y="50"
+                width="100"
+                height="180"
+                preserveAspectRatio="none"
+            />
                             
             </g>
 
-            <g id="lungR" style="transform-origin:158px 100px;">
-              <path d="M158,72
-                       C194,78 210,118 208,164
-                       C206,206 192,236 162,240
-                       C146,244 138,230 138,204
-                       L138,95
-                       C138,80 147,73 158,72 Z"
-                    fill="url(#lungGradR)" stroke="#b35a4d" stroke-width="1.5"/>
+            <g id="lungL" style="transform-origin:120px 80px;">
+              <image
+                id="lungLimg"
+                href="scripts/assets/leftLung.svg"
+                x="130"
+                y="50"
+                width="100"
+                height="180"
+                preserveAspectRatio="none"    
+              />
               
             </g>
 

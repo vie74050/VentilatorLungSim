@@ -629,17 +629,42 @@
 
   // ---------------- LUNG/MODEL VISUAL ----------------
 
-  // Healthy tissue color lerps from stiffened-red (frac=1) to healthy pink (frac=0).
-  function tissueColor(frac) {
-    const lo = [186, 92, 80]; // darker stiffened red
-    const hi = [255, 179, 168]; // healthy light pink
-    const mix = lo.map((v, i) => Math.round(v + (hi[i] - v) * (1 - frac)));
-    return `rgb(${mix[0]},${mix[1]},${mix[2]})`;
-  }
-
   const COLLAPSED_SCALE = 0.78;
-  const COLLAPSED_COLOR = "rgb(130,128,124)";
+  // collapsed lung tint (converted from rgb(130,128,124))
+  const COLLAPSED_COLOR = 1042;   // degrees
   const COLLAPSED_BRIGHTNESS = 0.7;
+  // Convert your RGB interpolation into a hue-rotate angle
+  function tissueColor(frac) {
+      const lo = [155, 3, 35];   // darker stiffened red
+      const hi = [255, 0, 0]; // healthy light pink
+
+      const mix = lo.map((v, i) => Math.round(v + (hi[i] - v) * (1 - frac)));
+
+      // Convert RGB → hue angle (0–360)
+      const r = mix[0] / 255;
+      const g = mix[1] / 255;
+      const b = mix[2] / 255;
+
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const d = max - min;
+
+      let h = 0;
+
+      if (d !== 0) {
+          if (max === r) {
+              h = ((g - b) / d) % 6;
+          } else if (max === g) {
+              h = (b - r) / d + 2;
+          } else {
+              h = (r - g) / d + 4;
+          }
+          h *= 60;
+          if (h < 0) h += 360;
+      }
+
+      return h*3;  // degrees for hue-rotate()
+  }
   function Update2DVisual() {
     // NOTE: fillFrac, expGain, stiffFrac, rFrac, alvScale, overDist,
     // leftLungFrac/rightLungFrac, bronchLWidth/bronchRWidth, o2Frac/co2Frac
@@ -649,14 +674,14 @@
     /* LUNGS */
     const lungL = $("lungL"),
           lungR = $("lungR");
-    const lungLPath = document.querySelector('#lungL path[fill^="url"]');
-    const lungRPath = document.querySelector('#lungR path[fill^="url"]');
+    const lungLimg = document.getElementById('lungLimg');
+    const lungRimg = document.getElementById('lungRimg');
         
     const lungScale = 1 + fillFrac * 0.22 * expGain;
-    const breathingBrightness = 1 + fillFrac * 0.12;
+    const breathingBrightness = 1.7 - rFrac * 0.5 - stiffFrac * 0.5; // darker as resistance or stiffness rises 
     
-    apply2DLungSide(lungL, lungLPath, patient.leftCollapsed, lungScale, breathingBrightness);
-    apply2DLungSide(lungR, lungRPath, patient.rightCollapsed, lungScale, breathingBrightness);
+    apply2DLungSide(lungL, lungLimg, patient.leftCollapsed, lungScale, breathingBrightness);
+    apply2DLungSide(lungR, lungRimg, patient.rightCollapsed, lungScale, breathingBrightness);
 
     /* BRONCHI */
 
@@ -699,7 +724,7 @@
 
       }else {
         c.style.transform = `scale(${COLLAPSED_SCALE})`;
-        c.style.fill = COLLAPSED_COLOR;
+        c.style.fill = `hsl(${COLLAPSED_COLOR}, 20%, 50%)`;
         o2Circles[i].classList.add("collapsed");
         co2Circles[i].classList.add("collapsed");
       }
@@ -734,19 +759,20 @@
   }
   function apply2DLungSide(
     lungEl,
-    pathEl,
+    imgEl,
     collapsed,
     normalScale,
     normalBrightness,
   ) {
     if (collapsed) {
       lungEl.style.transform = `scale(${COLLAPSED_SCALE})`;
-      lungEl.style.filter = `brightness(${COLLAPSED_BRIGHTNESS})`;
-      if (pathEl) pathEl.style.fill = COLLAPSED_COLOR;
+      imgEl.style.filter =
+        `hue-rotate(${COLLAPSED_COLOR}deg) brightness(${COLLAPSED_BRIGHTNESS})`;
     } else {
       lungEl.style.transform = `scale(${normalScale.toFixed(4)})`;
-      lungEl.style.filter = `brightness(${normalBrightness.toFixed(3)})`;
-      if (pathEl) pathEl.style.fill = tissueColor(stiffFrac);
+      imgEl.style.filter =
+        `hue-rotate(${tissueColor(stiffFrac)}deg) brightness(${normalBrightness.toFixed(3)})`;
+        //console.log(`tissueColor(stiffFrac): ${tissueColor(stiffFrac)}deg, brightness: ${normalBrightness.toFixed(3)}`);
     }
   }
 
