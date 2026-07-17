@@ -17,7 +17,7 @@
     <div class="bcit-logo" aria-label="BCIT logo">
         <svg class="logo" width="55" viewBox="0 0 95 85" xmlns="http://www.w3.org/2000/svg"><path fill="#FFF200" d="M0 0h84.8v84.8H0z"></path><path fill="#003C71" d="M8.6 56.4V27.2h7.2c6.7 0 9.7 2.2 9.7 7.6 0 3-1.3 5.1-3.8 6.2v.1c3.3 1.2 4.5 3.7 4.5 7 0 6.7-4.3 8.4-10 8.4H8.6v-.1zm7.4-17c2.5 0 4.7-.9 4.7-4.1 0-3.1-2.3-3.7-4.7-3.7h-2.7v7.8H16zm.5 12.7c3.4 0 4.8-1.2 4.8-4.3 0-3.2-1.6-4.5-4.8-4.5h-3.2v8.8h3.2zm30.9-5.2c-.9 6.5-3.6 9.9-8.9 9.9-7 0-9.3-5.7-9.3-15.1 0-8.4 2.4-14.8 9.3-14.8 5.6 0 7.8 3.5 8.6 9.4l-4.5.4c-.6-3.7-1.9-5.5-4-5.5-3 0-4.5 3.1-4.5 10.5 0 8.1 1.3 10.8 4.5 10.8 2.3 0 3.7-2.1 4.3-6.1l4.5.5zm4.1 9.5V27.2h4.8v29.2h-4.8zm14.8 0V31.6h-6v-4.4h16.8v4.4h-6v24.8h-4.8z"></path><path fill="#FFF200" d="M89.426 3.253c.462 0 .84-.13.84-.625 0-.478-.408-.566-.826-.566h-.64v1.19h.626zm.885 2.15l-.77-1.554H88.8v1.554h-.71V1.454h1.304c.973 0 1.572.333 1.572 1.16 0 .48-.248.858-.742 1.046l.899 1.743h-.812zM92.126 3.5c0-1.584-.99-2.86-2.716-2.86-1.743 0-2.744 1.276-2.744 2.86 0 1.627 1 2.862 2.744 2.862 1.727 0 2.716-1.235 2.716-2.862zM86 3.5C86 1.54 87.288 0 89.41 0c2.12 0 3.398 1.54 3.398 3.5 0 1.916-1.278 3.5-3.398 3.5C87.288 7 86 5.416 86 3.5z"></path></svg>
     </div>
-    <h1 class="title">BCIT Ventilator Simulator</h1>
+    <h1 class="title">BCIT Ventilator Lung Simulator</h1>
     <div class="sub"></div>
     
   </div>
@@ -59,17 +59,7 @@
             height="250"
             viewBox="0 0 220 330" 
             xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <radialGradient id="lungGradL" cx="35%" cy="30%" r="75%">
-                <stop offset="0%" stop-color="#ffb3a8"/>
-                <stop offset="100%" stop-color="#d9685c"/>
-              </radialGradient>
-              <radialGradient id="lungGradR" cx="65%" cy="30%" r="75%">
-                <stop offset="0%" stop-color="#ffb3a8"/>
-                <stop offset="100%" stop-color="#d9685c"/>
-              </radialGradient>
-            </defs>
-
+            
             <!-- trachea -->
             <g id="trachea">
               <rect x="103" y="10" width="14" height="38" rx="4" fill="#e7c9b8"/>
@@ -81,29 +71,33 @@
             </g>
 
             <!-- bronchi -->
-            <path id="bronchL" d="M108,46 C95,58 78,64 64,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
-            <path id="bronchR" d="M112,46 C126,58 144,64 158,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
+            <path id="bronchR" d="M108,46 C95,58 78,64 64,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
+            <path id="bronchL" d="M112,46 C126,58 144,64 158,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
 
             <!-- lungs (these scale/breathe) -->
-            <g id="lungL" style="transform-origin:64px 100px;">
-              <path d="M64,72
-                       C30,78 14,115 16,158
-                       C18,196 30,224 56,232
-                       C70,236 78,224 78,200
-                       L78,95
-                       C78,80 73,73 64,72 Z"
-                    fill="url(#lungGradL)" stroke="#b35a4d" stroke-width="1.5"/>
+            <g id="lungR" style="transform-origin:100px 80px;">
+              <image
+                id="lungRimg"
+                href="scripts/assets/rightLung.svg"
+                x="-10"
+                y="50"
+                width="100"
+                height="180"
+                preserveAspectRatio="none"
+            />
                             
             </g>
 
-            <g id="lungR" style="transform-origin:158px 100px;">
-              <path d="M158,72
-                       C194,78 210,118 208,164
-                       C206,206 192,236 162,240
-                       C146,244 138,230 138,204
-                       L138,95
-                       C138,80 147,73 158,72 Z"
-                    fill="url(#lungGradR)" stroke="#b35a4d" stroke-width="1.5"/>
+            <g id="lungL" style="transform-origin:120px 80px;">
+              <image
+                id="lungLimg"
+                href="scripts/assets/leftLung.svg"
+                x="130"
+                y="50"
+                width="100"
+                height="180"
+                preserveAspectRatio="none"    
+              />
               
             </g>
 
@@ -216,12 +210,17 @@
   <!-- ================= CONTROL DECK ================= -->
   <div class="deck">
 
+    <div class="deck-tabs modeselect">
+      <button class="deck-tab active" data-tab="ventilator" type="button">Ventilator Controls</button>
+      <button class="deck-tab" data-tab="patient" type="button">Patient Parameters</button>
+    </div>
+
     <div class="deck-grid">
 
       <!-- VENTILATOR SETTINGS CARD -->
-      <div class="card">
+      <div class="card" data-tab-panel="ventilator">
         <h3>Ventilator controls</h3>
-        <div id="vcGroup" class="modegroup">
+        <div id="vcGroup" class="modegroup slider-col-parent">
           <div class="slider-row">
             <div class="top"><label>FiO&#8322;</label><span class="readout"><span id="rFiO2">40</span>%</span></div>
             <input type="range" id="sFiO2" min="21" max="100" step="1" value="40">
@@ -240,7 +239,7 @@
           </div>
         </div>
 
-        <div id="pcGroup" class="modegroup" style="display:none;">
+        <div id="pcGroup" class="modegroup slider-col-parent" style="display:none;">
           <div class="slider-row">
             <div class="top"><label>FiO&#8322;</label><span class="readout"><span id="rFiO2pc">40</span>%</span></div>
             <input type="range" id="sFiO2pc" min="21" max="100" step="1" value="40">
@@ -259,7 +258,7 @@
           </div>
         </div>
 
-        <div id="psGroup" class="modegroup" style="display:none;">
+        <div id="psGroup" class="modegroup slider-col-parent" style="display:none;">
           <div class="slider-row">
             <div class="top"><label>FiO&#8322;</label><span class="readout"><span id="rFiO2ps">30</span>%</span></div>
             <input type="range" id="sFiO2ps" min="21" max="100" step="1" value="30">
@@ -284,43 +283,44 @@
       </div>
 
       <!-- PATIENT CARD -->
-      <div class="card setup-ui">
-        <h3>Simulated patient — lung mechanics</h3>
+      <div class="card setup-ui" data-tab-panel="patient" style="display:none;">
+        <h3>Lung & Respiratory mechanics</h3>
 
-        <div class="slider-row">
-          <div class="top"><label>Compliance (C)</label><span class="readout"><span id="rComp">50</span> mL/cmH&#8322;O</span></div>
-          <input type="range" class="patient" id="sComp" min="10" max="100" step="1" value="50">
-          <div class="ticks"><span>10 — stiff (ARDS/fibrosis)</span><span>100 — normal/emphysema</span></div>
+        <div class="slider-col-parent">
+          <div class="slider-row">
+            <div class="top"><label>Compliance (C)</label><span class="readout"><span id="rComp">50</span> mL/cmH&#8322;O</span></div>
+            <input type="range" class="patient" id="sComp" min="10" max="100" step="1" value="50">
+            <div class="ticks"><span>10 — stiff (ARDS/fibrosis)</span><span>100 — normal/emphysema</span></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="top"><label>Airway resistance (R)</label><span class="readout"><span id="rRes">10</span> cmH&#8322;O/L/s</span></div>
+            <input type="range" class="patient" id="sRes" min="4" max="40" step="1" value="10">
+            <div class="ticks"><span>4 — normal</span><span>40 — bronchospasm/secretions</span></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="top"><label>Patient respiratory effort</label><span class="readout"><span id="rEffort">0 (none)</span></span></div>
+            <input type="range" class="patient" id="sEffort" min="0" max="10" step="1" value="0">
+            <div class="ticks"><span>none — fully passive</span><span>strong — vigorous drive</span></div>
+          </div>
         </div>
-
-        <div class="slider-row">
-          <div class="top"><label>Airway resistance (R)</label><span class="readout"><span id="rRes">10</span> cmH&#8322;O/L/s</span></div>
-          <input type="range" class="patient" id="sRes" min="4" max="40" step="1" value="10">
-          <div class="ticks"><span>4 — normal</span><span>40 — bronchospasm/secretions</span></div>
-        </div>
-
-        <div class="slider-row">
-          <div class="top"><label>Patient respiratory effort</label><span class="readout"><span id="rEffort">0 (none)</span></span></div>
-          <input type="range" class="patient" id="sEffort" min="0" max="10" step="1" value="0">
-          <div class="ticks"><span>none — fully passive</span><span>strong — vigorous drive</span></div>
-        </div>
-
+        
         <div class="divider"></div>
 
-        <div class="slider-row">
-          <div class="top">
-            <label class="checkbox-lbl">
+        <div class="slider-col-parent">
+          <label class="checkbox-lbl">
             <input type="checkbox" id="chkLeftCollapsed">
             Left lung collapsed
-            </label>
-            <label class="checkbox-lbl">
+          </label>
+          <label class="checkbox-lbl">
             <input type="checkbox" id="chkRightCollapsed">
             Right lung collapsed
-            </label>
-          </div>
+          </label>
         </div>
        
         <div class="divider"></div>
+
         <div class="preset-row">
           <select id="presetSelect" class="preset-select">
             <option value="" selected disabled>Quick presets…</option>
@@ -329,6 +329,42 @@
             <option value="copd">COPD (high R)</option>
             <option value="spontaneous">Spontaneous effort</option>
           </select>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3>Heart mechanics</h3>
+
+        <div class="slider-col-parent">
+          <div class="slider-row">
+            <div class="top"><label>Preload</label><span class="readout"><span id="rPreload">50</span> %</span></div>
+            <input type="range" class="patient" id="sPreload" min="0" max="100" step="1" value="50">
+            <div class="ticks"><span>0 — low</span><span>100 — high</span></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="top"><label>Afterload</label><span class="readout"><span id="rAfterload">10</span> %</span></div>
+            <input type="range" class="patient" id="sAfterload" min="0" max="100" step="1" value="10">
+            <div class="ticks"><span>0 — low</span><span>100 — high</span></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="top"><label>Contractility</label><span class="readout"><span id="rContractility">50</span>%</span></div>
+            <input type="range" class="patient" id="sContractility" min="0" max="100" step="1" value="50">
+            <div class="ticks"><span>none — fully passive</span><span>strong — vigorous drive</span></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3>End Organ mechanics</h3>
+
+        <div class="slider-col-parent">
+          <div class="slider-row">
+            <div class="top"><label>Brain function</label><span class="readout"><span id="rBrain">50</span>%</span></div>
+            <input type="range" class="patient" id="sBrain" min="0" max="100" step="1" value="50">
+            <div class="ticks"><span>0 — failure</span><span>100 — normal</span></div>
+          </div>
         </div>
 
       </div>

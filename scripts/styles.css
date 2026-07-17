@@ -5,7 +5,7 @@
     --bg-screen: #1a1d20;
     --bg-tile: #23262a;
     --bg-tile-2: #2a2e32;
-    --line: #34383d;
+    --line: #7e7e7e;
     --text-hi: #e7e9ea;
     --text-dim: #8c9094;
     --text-faint: #5c6066;
@@ -64,6 +64,40 @@ body {
 }
 
 /* ---------- DEVICE ---------- */
+
+.modeselect {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+.modebtn {
+    flex: 1;
+    min-width: fit-content;
+    background: var(--bg-tile);
+    border: 1.5px solid var(--line);
+    color: var(--text-dim);
+    border-radius: 9px;
+    padding: 10px 8px;
+    font-family: var(--grotesk);
+    font-weight: 600;
+    font-size: 12.5px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color .15s, color .15s, background .15s;
+}
+
+.modebtn:hover {
+    border-color: #52565b;
+    color: var(--text-hi);
+}
+
+.modebtn.active {
+    border-color: var(--magenta);
+    color: var(--text-hi);
+    background: linear-gradient(180deg, rgba(232, 51, 110, .16), rgba(232, 51, 110, .04));
+}
+
 .device {
     background: linear-gradient(180deg, #26292c, #1d2023 6%);
     border-radius: 14px;
@@ -479,8 +513,7 @@ canvas#scopeCanvas {
 }
 
 .deck {
-    margin-top: 30px;
-    
+    margin-top: 16px;
 }
 
 .deck-actions {
@@ -511,23 +544,58 @@ canvas#scopeCanvas {
     color: var(--text-hi);
 }
 
-.deck-grid {
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap: 16px;
+.modeselect.deck-tabs {
+    margin-bottom: 0px;
+}
+.deck-tab {
+    margin-bottom: 0px;
+    flex: 1;
+    min-width: fit-content;
+    background: transparent;
+    border: 1.5px solid var(--line);
+    border-bottom: none;
+    color: var(--text-dim);
+    border-radius: 9px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    padding: 10px 8px;
+    font-family: var(--grotesk);
+    font-weight: 600;
+    font-size: 12.5px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color .15s, color .15s, background .15s;
 }
 
-@media (max-width:880px) {
-    .deck-grid {
-        grid-template-columns: 1fr;
-    }
+.deck-tab:hover {
+    border-color: #52565b;
+    color: var(--text-hi);
+}
+
+.deck-tab.active {
+    border-color: var(--magenta);
+    color: var(--text-hi);
+    background: linear-gradient(180deg,  rgba(232, 51, 110, 0.16), var(--bg-panel));
+}
+.deck-tab.active[data-tab="patient"] {
+    border-color: var(--cyan);
+    background: linear-gradient(180deg, #5cc9da55, var(--bg-panel));
+}
+.deck-grid {
+    display: block;
 }
 
 .card {
     background: var(--bg-panel);
-    border: 1px solid var(--line);
+    border: 1px solid var(--magenta);
     border-radius: 12px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    margin-top: -1px;
     padding: 18px 18px 14px;
+}
+.card[data-tab-panel="patient"] {
+    border-color: var(--cyan);
 }
 .setup-ui {
     background: var(--bg-deep);
@@ -542,41 +610,27 @@ canvas#scopeCanvas {
     font-weight: 600;
 }
 
-.modeselect {
+.slider-col-parent {
     display: flex;
-    gap: 8px;
-    margin-bottom: 5px;
+    flex-direction: row;
+    gap: 24px;
+    flex-wrap: wrap;
+    
 }
-
-.modebtn {
-    flex: 1;
-    min-width: fit-content;
-    background: var(--bg-tile);
-    border: 1.5px solid var(--line);
-    color: var(--text-dim);
-    border-radius: 9px;
-    padding: 10px 8px;
-    font-family: var(--grotesk);
-    font-weight: 600;
-    font-size: 12.5px;
-    cursor: pointer;
-    text-align: center;
-    transition: border-color .15s, color .15s, background .15s;
-}
-
-.modebtn:hover {
-    border-color: #52565b;
-    color: var(--text-hi);
-}
-
-.modebtn.active {
-    border-color: var(--magenta);
-    color: var(--text-hi);
-    background: linear-gradient(180deg, rgba(232, 51, 110, .16), rgba(232, 51, 110, .04));
-}
-
 .slider-row {
+    flex: 1 1 200px;
     margin-bottom: 13px;
+    position: relative;
+    padding-right: 24px; /* space before the line */
+}
+.slider-row:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 90%;
+    width: 1px;
+    background: var(--line);
 }
 
 .slider-row .top {
@@ -586,6 +640,7 @@ canvas#scopeCanvas {
     margin-bottom: 5px;
 }
 
+.card label,
 .slider-row label {
     font-size: 12.5px;
     color: var(--text-hi);
@@ -641,7 +696,7 @@ input[type=range].patient::-moz-range-thumb {
 .slider-row .ticks {
     display: flex;
     justify-content: space-between;
-    font-size: 9px;
+    font-size: 10px;
     color: var(--text-faint);
     font-family: var(--mono);
     margin-top: 3px;
@@ -661,7 +716,7 @@ input[type=range].patient::-moz-range-thumb {
 .divider {
     height: 1px;
     background: var(--line);
-    margin: 14px 0;
+    margin: 24px 0;
 }
 
 .preset-row {
@@ -681,6 +736,11 @@ input[type=range].patient::-moz-range-thumb {
     font-family: var(--grotesk);
     cursor: pointer;
     width: 100%;
+    appearance: none; /* remove native arrow */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><path d='M2 4l4 4 4-4' stroke='%23aaa' stroke-width='2' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center; /* control spacing */
+    background-size: 12px;
 }
 
 .preset-select:hover,

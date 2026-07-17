@@ -42,8 +42,15 @@
     stiffFrac = 0,
     rFrac = 0;
   let alvScale = 0,
-    bronchioleScale = 1,
     overDist = false;
+  // Per-side, already collapse-aware FINAL values -- computed once in
+  // derivePatientFractions() and used for visual rendering (SVG + Unity) and for gas exchange (shuntFrac) alike.
+  let leftLungFrac = 0,
+    rightLungFrac = 0;
+  let bronchLWidth = 6,
+    bronchRWidth = 6;
+  let o2Frac = 0,
+    co2Frac = 0;
 
   // ---------------- DOM ----------------
   const $ = (id) => document.getElementById(id);
@@ -313,45 +320,12 @@
       accum -= DT;
     }
 
-    render();
+    renderGraphs();
     updateReadouts();
 
     derivePatientFractions(); // single source of truth for both visualizations below
-
-    // While Unity isn't ready yet, the SVG is the visible panel -- paint it.
-    // Once Unity has taken over (VentUnityBridge.isReady()), the SVG is
-    // display:none, so we skip its DOM writes entirely.
-    if (!window.VentUnityBridge || !window.VentUnityBridge.isReady()) {
-      updateLungVisual();
-    }
-
-    if (window.VentUnityBridge) {
-      window.VentUnityBridge.tick(dtWall, buildUnitySnapshot());
-    }
-
+    updateVisuals();
     requestAnimationFrame(loop);
-  }
-
-  // Plain snapshot object handed to the Unity bridge every frame -- the
-  // bridge itself decides whether it's worth actually sending (throttle +
-  // send-on-change gating live entirely in unity-bridge.js).
-  function buildUnitySnapshot() {
-    return {
-      fillFrac: fillFrac,
-      expGain: expGain,
-      stiffFrac: stiffFrac,
-      rFrac: rFrac,
-      alvScale: alvScale,
-      bronchioleScale: bronchioleScale,
-      overDist: overDist,
-      phase: phase,
-      effort: patient.effort,
-      spo2: spo2,
-      paCO2: paCO2,
-      shuntFrac: shuntFrac,
-      leftCollapsed: patient.leftCollapsed,
-      rightCollapsed: patient.rightCollapsed,
-    };
   }
 
   // ---------------- RENDER ----------------
@@ -382,13 +356,13 @@
     return a.display;
   }
 
-  function render() {
+  function renderGraphs() {
     const w = canvas.clientWidth,
       h = canvas.clientHeight;
     ctx.clearRect(0, 0, w, h);
 
     const panelH = h / 3;
-    drawPanel(
+    drawGraphPanel(
       0,
       panelH,
       hPaw,
@@ -397,7 +371,7 @@
       "Paw cmH\u2082O",
       scaleLabels("paw"),
     );
-    drawPanel(
+    drawGraphPanel(
       panelH,
       panelH,
       hFlow,
@@ -406,7 +380,7 @@
       "FLOW l/min",
       scaleLabels("flow"),
     );
-    drawPanel(
+    drawGraphPanel(
       panelH * 2,
       panelH,
       hVol,
@@ -441,7 +415,7 @@
     return { top: Math.round(sc.max), bottom: Math.round(sc.min) };
   }
 
-  function drawPanel(
+  function drawGraphPanel(
     yTop,
     panelH,
     hist,
@@ -552,8 +526,8 @@
 
   // ---------------- SHARED PATIENT-DERIVED FRACTIONS ----------------
   // Single source of truth for the numbers driven by compliance/resistance/
-  // volume -- consumed by updateLungVisual() (SVG) and the Unity bridge
-  // snapshot alike, so both visualizations always agree with each other.
+  // volume/gas-exchange -- fractions for the visualizations and the gas exchange model  
+  // runs every frame after step() has updated Paw/Vol/Flow, but before either visualizer reads the values.
   function derivePatientFractions() {
     const C = patient.compliance;
     const R = patient.resistance;
@@ -562,15 +536,46 @@
     fillFrac = Math.max(0, Math.min(1, Vol / nominalMaxL));
     expGain = 1 + ((Math.min(Math.max(C, 10), 100) - 10) / 90) * 0.6;
     stiffFrac = Math.max(0, Math.min(1, (100 - C) / 90));
-
     rFrac = Math.max(0, Math.min(1, (R - 4) / 36));
-    bronchioleScale = 1 - rFrac * 0.53;
 
     alvScale = 1 + fillFrac * 1.35 * expGain;
     overDist = Paw > 30 && fillFrac > 0.6;
+
+    // Per-side lung inflation fraction, already collapse-aware. 
+    leftLungFrac = patient.leftCollapsed ? 0 : fillFrac * expGain;
+    rightLungFrac = patient.rightCollapsed ? 0 : fillFrac * expGain;
+
+    // Per-side bronchus width, already collapse-aware. 
+    const BRONCH_OPEN_WIDTH = 6 - rFrac * 3.2; // narrows as resistance climbs
+    const BRONCH_OCCLUDED_WIDTH = 1.8;
+    bronchLWidth = patient.leftCollapsed ? BRONCH_OCCLUDED_WIDTH : BRONCH_OPEN_WIDTH;
+    bronchRWidth = patient.rightCollapsed ? BRONCH_OCCLUDED_WIDTH : BRONCH_OPEN_WIDTH;
+
+    // Gas exchange dot/particle intensity. 
+    // SpO2: plateau at full intensity across the clinically-acceptable
+    // range (>=90%, the standard "keep SpO2 >=90" target, then a narrow, steep ramp down to 0 by 70%
+    // (severe hypoxemia). Narrow ramp = obvious change per point of
+    // desaturation, rather than a shallow gradient across the full sim range.
+    o2Frac = spo2 >= 90 ? 1 : Math.max(0, (spo2 - 70) / 20);
+
+    // PaCO2: flat, dim baseline across the normal range (35-45 mmHg) --
+    // normal CO2 clearance shouldn't read as alarming. Ramps up toward full
+    // intensity in EITHER direction outside normal: above 45 toward 80
+    // (hypercapnia/retention, the common case in ARDS/COPD/collapsed-lung
+    // scenarios here), or below 35 toward 20 (hypocapnia/hyperventilation).
+    const CO2_BASELINE = 0.2;
+    if (paCO2 >= 35 && paCO2 <= 45) {
+      co2Frac = CO2_BASELINE;
+    } else if (paCO2 > 45) {
+      co2Frac = CO2_BASELINE + (1 - CO2_BASELINE) * Math.min(1, (paCO2 - 45) / (80 - 45));
+    } else {
+      co2Frac = CO2_BASELINE + (1 - CO2_BASELINE) * Math.min(1, (35 - paCO2) / (35 - 20));
+    }
   }
 
   // ---------------- READOUTS ----------------
+  
+  // The readouts of the ventilator panel
   function updateReadouts() {
     $("vPpeak").textContent = lastPpeak > 0 ? lastPpeak.toFixed(0) : "--";
     $("vRR").textContent = lastRRdisplay;
@@ -580,112 +585,19 @@
     $("vVTe").textContent = lastVTe || "--";
   }
 
-  // ---------------- LUNG VISUAL ----------------
-  const lungL = $("lungL"),
-    lungR = $("lungR");
-  const lungLPath = document.querySelector('#lungL path[fill^="url"]');
-  const lungRPath = document.querySelector('#lungR path[fill^="url"]');
-  const bronchL = $("bronchL"),
-    bronchR = $("bronchR");
-  const alvCircles = document.querySelectorAll(".alv");
-  const o2Circles = document.querySelectorAll(".gas-dot-o2");
-  const co2Circles = document.querySelectorAll(".gas-dot-co2");
-  const gasExchangeGroup = $("gasExchange");
-  let lpCompLast = null,
-    lpResLast = null;
-  let lpLeftCollapsedLast = false,
-    lpRightCollapsedLast = false;
+  // The numbers printed to lung panel patient model readouts 
+  // .lp-readout elements, name convention: lpComp, lpRes, lpSpo2, lpPaCO2, etc. 
   let lpSpo2Last = null,
-    lpPaCO2Last = null;
-
-  // Healthy tissue color lerps from stiffened-red (frac=1) to healthy pink (frac=0).
-  function tissueColor(frac) {
-    const lo = [186, 92, 80]; // darker stiffened red
-    const hi = [255, 179, 168]; // healthy light pink
-    const mix = lo.map((v, i) => Math.round(v + (hi[i] - v) * (1 - frac)));
-    return `rgb(${mix[0]},${mix[1]},${mix[2]})`;
-  }
-
-  const COLLAPSED_SCALE = 0.78;
-  const COLLAPSED_COLOR = "rgb(130,128,124)";
-  const COLLAPSED_BRIGHTNESS = 0.7;
-
-  // A collapsed lung doesn't breathe: it holds a small deflated scale and a
-  // flat, desaturated grey rather than following Vol/compliance like the
-  // working side does. Mirrors the "hold at collapsed state, ignore fillFrac"
-  // logic used in LungController.cs on the Unity side.
-  function applyLungSide(
-    lungEl,
-    pathEl,
-    collapsed,
-    normalScale,
-    normalBrightness,
-  ) {
-    if (collapsed) {
-      lungEl.style.transform = `scale(${COLLAPSED_SCALE})`;
-      lungEl.style.filter = `brightness(${COLLAPSED_BRIGHTNESS})`;
-      if (pathEl) pathEl.style.fill = COLLAPSED_COLOR;
-    } else {
-      lungEl.style.transform = `scale(${normalScale.toFixed(4)})`;
-      lungEl.style.filter = `brightness(${normalBrightness.toFixed(3)})`;
-      if (pathEl) pathEl.style.fill = tissueColor(stiffFrac);
-    }
-  }
-
-  function updateLungVisual() {
-    // NOTE: fillFrac, expGain, stiffFrac, rFrac, alvScale, bronchioleScale,
-    // overDist are all computed once per frame in derivePatientFractions()
-    // (called from loop(), before this runs) -- this function only reads
-    // them now, it doesn't (re)compute its own copies. This keeps the SVG
-    // and the Unity bridge snapshot always in agreement.
+      lpPaCO2Last = null;
+  function UpdateLungPanelReadouts() {
     const C = patient.compliance;
     const R = patient.resistance;
 
-    /* LUNGS */
-    const lungScale = 1 + fillFrac * 0.22 * expGain;
-    const breathingBrightness = 1 + fillFrac * 0.12;
-
-    applyLungSide(
-      lungL,
-      lungLPath,
-      patient.leftCollapsed,
-      lungScale,
-      breathingBrightness,
-    );
-    applyLungSide(
-      lungR,
-      lungRPath,
-      patient.rightCollapsed,
-      lungScale,
-      breathingBrightness,
-    );
-
-    /* BRONCHI */
-
-    // resistance -> visually narrow / thicken & darken the airway (bronchi).
-    // A collapsed lung's own bronchus is shown occluded (thin, dark) instead
-    // of following the resistance slider, since the collapse itself -- not
-    // airway resistance -- is what's blocking that side.
-    // bronchioleScale (0-1, 1=clear) is the Unity-facing version of this same
-    // resistance number; bronchWidth here is just its SVG stroke-width rendering.
-    const bronchWidth = 6 - rFrac * 3.2; // narrows as resistance climbs
-    const bronchColor = rFrac > 0.5 ? "#8a5147" : "#c98a78";
-    const OCCLUDED_WIDTH = 1.8;
-    const OCCLUDED_COLOR = "#5c5852";
-
-    bronchL.setAttribute(
-      "stroke-width",
-      (patient.leftCollapsed ? OCCLUDED_WIDTH : bronchWidth).toFixed(1),
-    );
-    bronchL.style.stroke = patient.leftCollapsed ? OCCLUDED_COLOR : bronchColor;
-    bronchR.setAttribute(
-      "stroke-width",
-      (patient.rightCollapsed ? OCCLUDED_WIDTH : bronchWidth).toFixed(1),
-    );
-    bronchR.style.stroke = patient.rightCollapsed
-      ? OCCLUDED_COLOR
-      : bronchColor;
-
+    let lpCompLast = null,
+        lpResLast = null;
+    let lpLeftCollapsedLast = false,
+        lpRightCollapsedLast = false;
+    
     // compliance / collapse-state text + color refresh -- only touches the
     // DOM when compliance or either collapse flag actually changed, rather
     // than reapplying identical style strings every 20ms tick.
@@ -704,7 +616,98 @@
       lpResLast = R;
     }
 
+    // update .lp-readout
+    const spo2El = $("lpSpO2");
+    if (spo2El) spo2El.textContent = spo2.toFixed(0);
+    const co2El = $("lpPaCO2");
+    if (co2El) co2El.textContent = paCO2.toFixed(0);
+
+    lpSpo2Last = spo2;
+    lpPaCO2Last = paCO2;
+
+  }
+
+  // ---------------- LUNG/MODEL VISUAL ----------------
+
+  const COLLAPSED_SCALE = 0.78;
+  // collapsed lung tint (converted from rgb(130,128,124))
+  const COLLAPSED_COLOR = 1042;   // degrees
+  const COLLAPSED_BRIGHTNESS = 0.7;
+  // Convert your RGB interpolation into a hue-rotate angle
+  function tissueColor(frac) {
+      const lo = [155, 3, 35];   // darker stiffened red
+      const hi = [255, 0, 0]; // healthy light pink
+
+      const mix = lo.map((v, i) => Math.round(v + (hi[i] - v) * (1 - frac)));
+
+      // Convert RGB → hue angle (0–360)
+      const r = mix[0] / 255;
+      const g = mix[1] / 255;
+      const b = mix[2] / 255;
+
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const d = max - min;
+
+      let h = 0;
+
+      if (d !== 0) {
+          if (max === r) {
+              h = ((g - b) / d) % 6;
+          } else if (max === g) {
+              h = (b - r) / d + 2;
+          } else {
+              h = (r - g) / d + 4;
+          }
+          h *= 60;
+          if (h < 0) h += 360;
+      }
+
+      return h*3;  // degrees for hue-rotate()
+  }
+  function Update2DVisual() {
+    // NOTE: fillFrac, expGain, stiffFrac, rFrac, alvScale, overDist,
+    // leftLungFrac/rightLungFrac, bronchLWidth/bronchRWidth, o2Frac/co2Frac
+    // are all computed once per frame in derivePatientFractions() (called
+    // from loop(), before this runs)
+    
+    /* LUNGS */
+    const lungL = $("lungL"),
+          lungR = $("lungR");
+    const lungLimg = document.getElementById('lungLimg');
+    const lungRimg = document.getElementById('lungRimg');
+        
+    const lungScale = 1 + fillFrac * 0.22 * expGain;
+    const breathingBrightness = 1.7 - rFrac * 0.5 - stiffFrac * 0.5; // darker as resistance or stiffness rises 
+    
+    apply2DLungSide(lungL, lungLimg, patient.leftCollapsed, lungScale, breathingBrightness);
+    apply2DLungSide(lungR, lungRimg, patient.rightCollapsed, lungScale, breathingBrightness);
+
+    /* BRONCHI */
+
+    // resistance -> visually narrow / thicken & darken the airway (bronchi).
+    // resistance number; bronchWidth here is just its SVG stroke-width rendering.
+    const bronchWidth = 6 - rFrac * 3.2; // narrows as resistance climbs
+    // BRONCHI left, right
+    const bronchL = $("bronchL"), 
+          bronchR = $("bronchR");
+    const OCCLUDED_COLOR = "#5c5852";
+    const bronchColor = rFrac > 0.5 ? "#8a5147" : "#c98a78";
+    
+    bronchL.setAttribute("stroke-width", bronchWidth.toFixed(1));
+    bronchL.style.stroke = patient.leftCollapsed ? OCCLUDED_COLOR : bronchColor;
+    bronchR.setAttribute("stroke-width", bronchWidth.toFixed(1));
+    bronchR.style.stroke = patient.rightCollapsed
+      ? OCCLUDED_COLOR
+      : bronchColor;
+    
     /* ALVEOLI */
+    const alvCircles = document.querySelectorAll(".alv");
+    const o2Circles = document.querySelectorAll(".gas-dot-o2");
+    const co2Circles = document.querySelectorAll(".gas-dot-co2");
+    const gasExchangeGroup = $("gasExchange");
+
+     /* ALVEOLI */
     // Check shunt fraction, shuntFrac, to determine how many alveoli are "open" (pink) vs "closed" (grey). 
     // - visual cue for the user to see how much of the lung is effectively participating in gas exchange.
     const openAlvCount = Math.round((1 - shuntFrac) * alvCircles.length);
@@ -719,10 +722,9 @@
         o2Circles[i].classList.remove("collapsed");
         co2Circles[i].classList.remove("collapsed");
 
-
       }else {
         c.style.transform = `scale(${COLLAPSED_SCALE})`;
-        c.style.fill = COLLAPSED_COLOR;
+        c.style.fill = `hsl(${COLLAPSED_COLOR}, 20%, 50%)`;
         o2Circles[i].classList.add("collapsed");
         co2Circles[i].classList.add("collapsed");
       }
@@ -732,32 +734,9 @@
     // O2/CO2 exchange dot intensity -- spo2/paCO2 only change once per
     // breath (updateGasExchange(), at the insp->exp transition), so gate the
     // DOM write the same way the C/R readouts above do.
-    if (gasExchangeGroup && (spo2 !== lpSpo2Last || paCO2 !== lpPaCO2Last)) {
-      // SpO2: plateau at full brightness across the clinically-acceptable
-      // range (>=90%, the standard "keep SpO2 >=90" target -- not just
-      // statistical normal), then a narrow, steep ramp down to 0 by 70%
-      // (severe hypoxemia). Narrow ramp = obvious dimming per point of
-      // desaturation, rather than a shallow gradient across the full sim range.
-      const o2Frac = spo2 >= 90 ? 1 : Math.max(0, (spo2 - 70) / 20);
 
-      // PaCO2: flat, dim baseline across the normal range (35-45 mmHg) --
-      // normal CO2 clearance shouldn't read as alarming. Ramps up toward
-      // full brightness in EITHER direction outside normal: above 45 toward
-      // 80 (hypercapnia/retention, the common case in ARDS/COPD/collapsed-lung
-      // scenarios here), or below 35 toward 20 (hypocapnia/hyperventilation).
-      const CO2_BASELINE = 0.2;
-      let co2Frac;
-      if (paCO2 >= 35 && paCO2 <= 45) {
-        co2Frac = CO2_BASELINE;
-      } else if (paCO2 > 45) {
-        co2Frac =
-          CO2_BASELINE +
-          (1 - CO2_BASELINE) * Math.min(1, (paCO2 - 45) / (80 - 45));
-      } else {
-        co2Frac =
-          CO2_BASELINE +
-          (1 - CO2_BASELINE) * Math.min(1, (35 - paCO2) / (35 - 20));
-      }
+    if (gasExchangeGroup && (spo2 !== lpSpo2Last || paCO2 !== lpPaCO2Last)) {
+      
       gasExchangeGroup.style.setProperty("--o2-intensity", o2Frac.toFixed(2));
       gasExchangeGroup.style.setProperty("--co2-intensity", co2Frac.toFixed(2));
 
@@ -774,15 +753,38 @@
         "--co2-duration",
         co2Dur.toFixed(2) + "s",
       );
+    }
 
-      lpSpo2Last = spo2;
-      lpPaCO2Last = paCO2;
+    UpdateLungPanelReadouts();
+  }
+  function apply2DLungSide(
+    lungEl,
+    imgEl,
+    collapsed,
+    normalScale,
+    normalBrightness,
+  ) {
+    if (collapsed) {
+      lungEl.style.transform = `scale(${COLLAPSED_SCALE})`;
+      imgEl.style.filter =
+        `hue-rotate(${COLLAPSED_COLOR}deg) brightness(${COLLAPSED_BRIGHTNESS})`;
+    } else {
+      lungEl.style.transform = `scale(${normalScale.toFixed(4)})`;
+      imgEl.style.filter =
+        `hue-rotate(${tissueColor(stiffFrac)}deg) brightness(${normalBrightness.toFixed(3)})`;
+        //console.log(`tissueColor(stiffFrac): ${tissueColor(stiffFrac)}deg, brightness: ${normalBrightness.toFixed(3)}`);
+    }
+  }
 
-      // update readout
-      const spo2El = $("lpSpO2");
-      if (spo2El) spo2El.textContent = spo2.toFixed(0);
-      const co2El = $("lpPaCO2");
-      if (co2El) co2El.textContent = paCO2.toFixed(0);
+  function updateVisuals() {
+    // check if Unity ready (Unity WebGL sets a global variable when the engine is initialized)
+    const unityReady = window.VentUnityBridge && window.VentUnityBridge.isReady();
+    if (unityReady) {
+      // Unity-specific rendering logic here
+      
+    } else {
+      // Fallback 2D rendering logic here
+      Update2DVisual();
     }
   }
 
@@ -843,7 +845,7 @@
   function switchMode(m) {
     mode = m;
     document
-      .querySelectorAll(".modebtn")
+      .querySelectorAll(".modebtn[data-mode]")
       .forEach((b) => b.classList.toggle("active", b.dataset.mode === m));
     $("vcGroup").style.display = m === "VC" ? "" : "none";
     $("pcGroup").style.display = m === "PC" ? "" : "none";
@@ -863,8 +865,19 @@
     lastBreathTimes = [];
   }
 
-  document.querySelectorAll(".modebtn").forEach((btn) => {
+  document.querySelectorAll(".modebtn[data-mode]").forEach((btn) => {
     btn.addEventListener("click", () => switchMode(btn.dataset.mode));
+  });
+
+  // Deck tabs
+  document.querySelectorAll(".deck-tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.tab;
+      document.querySelectorAll(".deck-tab").forEach((b) => b.classList.toggle("active", b === btn));
+      document.querySelectorAll("[data-tab-panel]").forEach((panel) => {
+        panel.style.display = panel.dataset.tabPanel === target ? "" : "none";
+      });
+    });
   });
 
   // ---------------- CONTROL FIELD REGISTRY ----------------
@@ -1174,12 +1187,45 @@
       /* no settings.json present -- keep hardcoded defaults */
     });
 
+
+  
   // ---------------- MINIMAL GLOBAL EXPORT ----------------
   // Everything else in this file is intentionally scoped inside the IIFE.
   // This is the one hook the Unity loader's ready callback needs: a way to
   // hand VentUnityBridge a fresh snapshot at the moment Unity comes online
   // (see VentUnityBridge.setUnityInstance(instance, getStateFn) in
   // unity-bridge.js, and the loader stub at the bottom of index.html).
+  // Plain snapshot object handed to the Unity bridge every frame -- the
+  // bridge itself decides whether it's worth actually sending (throttle +
+  // send-on-change gating live entirely in unity-bridge.js).
+  //
+  // Sends fully-resolved values (leftLungFrac/bronchLWidth/o2Frac/etc), not
+  // raw ingredients (fillFrac, expGain, rFrac) -- Unity applies its own
+  // trivial unit conversion (e.g. width -> localScale) but no longer
+  // re-derives resistance narrowing or the SpO2/PaCO2 clinical thresholds
+  // itself. stiffFrac is the one exception, kept raw since Unity's shader
+  // uses it directly as a material property, a legitimately separate need
+  // from anything the SVG computes from it.
+  function buildUnitySnapshot() {
+    return {
+      leftLungFrac: leftLungFrac,
+      rightLungFrac: rightLungFrac,
+      stiffFrac: stiffFrac,
+      bronchLWidth: bronchLWidth,
+      bronchRWidth: bronchRWidth,
+      alvScale: alvScale,
+      overDist: overDist,
+      phase: phase,
+      effort: patient.effort,
+      spo2: spo2,
+      paCO2: paCO2,
+      o2Frac: o2Frac,
+      co2Frac: co2Frac,
+      shuntFrac: shuntFrac,
+      leftCollapsed: patient.leftCollapsed,
+      rightCollapsed: patient.rightCollapsed,
+    };
+  }
   window.getVentUnitySnapshot = buildUnitySnapshot;
 
   // init
