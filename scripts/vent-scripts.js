@@ -1094,10 +1094,12 @@
       presetSelect.value = ""; // reset to placeholder so re-selecting the same preset again still fires change
     });
   }
-  function setPatient(c, r, e) {
+  function setPatient(c, r, e, leftCollapsed = false, rightCollapsed = false) {
     patient.compliance = c;
     patient.resistance = r;
     patient.effort = e;
+    patient.leftCollapsed = leftCollapsed;
+    patient.rightCollapsed = rightCollapsed;
     refreshControlsUI();
   }
 
