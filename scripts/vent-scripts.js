@@ -338,7 +338,7 @@
   const AUTOSCALE_BREATHS = 3; // rolling window, in completed breaths
   const AUTOSCALE_EASE = 0.06; // per-frame ease toward target -- avoids the axis visibly snapping at each breath boundary
   const autoscale = {
-    paw: { floor: 40, pad: 1.1, recent: [], target: 40, display: 40 },
+    paw: { floor: 15, pad: 1.1, recent: [], target: 15, display: 15 },
     flow: { floor: 100, pad: 1.1, recent: [], target: 100, display: 100 }, // symmetric +/-
     vol: { floor: 600, pad: 1.3, recent: [], target: 600, display: 600 },
   };
