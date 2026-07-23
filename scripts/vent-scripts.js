@@ -532,10 +532,12 @@
     const C = patient.compliance;
     const R = patient.resistance;
     const nominalMaxL = 0.8; // 800 mL ~ visual full-scale
+    const compMin = 10; // 10 mL/cmH2O, extreme ARDS
+    const compMax = 100; // 100 mL/cmH2O, normal healthy adult
 
-    fillFrac = Math.max(0, Math.min(1, Vol / nominalMaxL));
-    expGain = 1 + ((Math.min(Math.max(C, 10), 100) - 10) / 90) * 0.6;
-    stiffFrac = Math.max(0, Math.min(1, (100 - C) / 90));
+    fillFrac = Math.max(0, Math.min(1, Vol / nominalMaxL));           
+    expGain = 1 + ((Math.min(Math.max(C, compMin), compMax) - compMin) / (compMax - compMin)) * 0.6; // 0...1.6
+    stiffFrac = Math.max(0, Math.min(1, (compMax - C) / (compMax - compMin)));
     rFrac = Math.max(0, Math.min(1, (R - 4) / 36));
 
     alvScale = 1 + fillFrac * 1.35 * expGain;
@@ -677,11 +679,12 @@
     const lungLimg = document.getElementById('lungLimg');
     const lungRimg = document.getElementById('lungRimg');
         
-    const lungScale = 1 + fillFrac * 0.22 * expGain;
+    const lungScale_L = 1 + leftLungFrac * 0.22 ;
+    const lungScale_R = 1 + rightLungFrac * 0.22 ;
     const breathingBrightness = 1.7 - rFrac * 0.5 - stiffFrac * 0.5; // darker as resistance or stiffness rises 
     
-    apply2DLungSide(lungL, lungLimg, patient.leftCollapsed, lungScale, breathingBrightness);
-    apply2DLungSide(lungR, lungRimg, patient.rightCollapsed, lungScale, breathingBrightness);
+    apply2DLungSide(lungL, lungLimg, patient.leftCollapsed, lungScale_L, breathingBrightness);
+    apply2DLungSide(lungR, lungRimg, patient.rightCollapsed, lungScale_R, breathingBrightness);
 
     /* BRONCHI */
 
@@ -1200,32 +1203,25 @@
   // Plain snapshot object handed to the Unity bridge every frame -- the
   // bridge itself decides whether it's worth actually sending (throttle +
   // send-on-change gating live entirely in unity-bridge.js).
-  //
-  // Sends fully-resolved values (leftLungFrac/bronchLWidth/o2Frac/etc), not
-  // raw ingredients (fillFrac, expGain, rFrac) -- Unity applies its own
-  // trivial unit conversion (e.g. width -> localScale) but no longer
-  // re-derives resistance narrowing or the SpO2/PaCO2 clinical thresholds
-  // itself. stiffFrac is the one exception, kept raw since Unity's shader
-  // uses it directly as a material property, a legitimately separate need
-  // from anything the SVG computes from it.
+  // send-on-change gating live entirely in unity-bridge.js).
   function buildUnitySnapshot() {
+   
     return {
-      leftLungFrac: leftLungFrac,
-      rightLungFrac: rightLungFrac,
-      stiffFrac: stiffFrac,
-      bronchLWidth: bronchLWidth,
-      bronchRWidth: bronchRWidth,
-      alvScale: alvScale,
-      overDist: overDist,
-      phase: phase,
-      effort: patient.effort,
-      spo2: spo2,
-      paCO2: paCO2,
-      o2Frac: o2Frac,
-      co2Frac: co2Frac,
-      shuntFrac: shuntFrac,
-      leftCollapsed: patient.leftCollapsed,
-      rightCollapsed: patient.rightCollapsed,
+      leftLungFrac: leftLungFrac,   // left lung blend-shape inflate weight input (x100 for 0-100 weight); range 0 - ~1.6; 0 when leftCollapsed
+      rightLungFrac: rightLungFrac, // same, right lung; range 0 - ~1.6; 0 when rightCollapsed
+      stiffFrac: stiffFrac,         // lung material _Stiffness property; range 0 (floppy) - 1 (stiff)
+      bronchLWidth: bronchLWidth,   // left bronchiole localScale input; range 1.8 (occluded/collapsed) - 6 (fully open)
+      bronchRWidth: bronchRWidth,   // same, right bronchiole; range 1.8 - 6
+      alvScale: alvScale,           // alveoli sphere uniform scale; range 1.0 (empty) - ~3.16 (full inflation, low compliance floor)
+      overDist: overDist,           // lung material _Overdistend flag; 0 or 1 (boolean)
+      phase: phase,                 // breath phase, selects lerp speed (LERP_INSP vs LERP_EXP); "insp" or "exp"
+      effort: patient.effort,       // diaphragm Animator "Effort" float param; range 0 (passive) - 10 (max drive)
+      spo2: spo2,                   // lung material _SpO2 property (blood color lerp); range 40 - 100 (%)
+      paCO2: paCO2,                 // lung material _PaCO2 property; range 15 - 120 (mmHg)
+      o2Frac: o2Frac,               // O2 particle system emission rate + simulationSpeed input; range 0 - 1
+      co2Frac: co2Frac,             // CO2 particle system emission rate + simulationSpeed input; range 0.2 (normal baseline) - 1
+      shuntFrac: shuntFrac,         // lung material _ShuntFrac property; range 0 - 0.6
+      leftCollapsed: patient.leftCollapsed,   // selects BLEND_COLLAPSED vs BLEND_INFLATE target on left lung mesh; boolean
     };
   }
   window.getVentUnitySnapshot = buildUnitySnapshot;
