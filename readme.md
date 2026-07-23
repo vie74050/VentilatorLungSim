@@ -2,12 +2,71 @@
 
 A web-based training simulator for mechanical ventilation that models core respiratory mechanics and gas-exchange trends. It lets users adjust ventilator controls and set patient parameters to visualize pressure, flow, volume changes, and gas exchange.
 
+## Development Setup
+
+**Node version:** 18 or later (only needed for local dev tooling -- linting, a local static server, and the D2L deploy script; nothing here is required to run the simulator itself).
+
+**Repo layout:**
+
+```text
+index.html             <- layout, relative paths (scripts/...)
+scripts/
+  vent-scripts.js      <- ES module entry point
+  src/                 <- core/ modes/ physiology/ render/ ui/ persistence/ unity/
+  styles.css           <- layout, styling
+  assets/              
+  unity-bridge.js      <- communicates with Unity webGL(TBD), if present 
+  update-version.js    <- For GH page pipeline, see .github/workflows/pages.yml
+
+// for local dev test
+package.json 
+.eslintrc.json 
+tools/
+
+```
+
+Everything under `scripts/` is either a DOM/2D-fallback dependency (`styles.css`, `assets/`, the 2D SVG code path in `src/render/`) or the Unity bridge -- all of it is loaded by `index.html`, none of it is Unity build output itself (that would live in its own `Build/` folder if/when added, same as the commented-out loader placeholder in `index.html`).
+
+The simulator is split across `scripts/src/core/`, `scripts/src/modes/`, `scripts/src/physiology/`, `scripts/src/render/`, `scripts/src/ui/`, `scripts/src/persistence/`, and `scripts/src/unity/`, wired together by `scripts/src/VentSimApp.js` and loaded via the thin entry point `scripts/vent-scripts.js` (`<script type="module">`, native browser ES modules, no bundler).
+
+It draws the ventilator control panel and continuously simulates a "patient" breathing on that ventilator, at 50 simulation steps per second, rendering the scrolling waveforms and driving the svg & webGl animations.
+
+```bash
+npm install     # installs devDependencies (eslint, serve)
+npm run lint    # lints scripts/src/**/*.js and scripts/vent-scripts.js, must report 0 warnings
+npm run serve   # serves the project at http://localhost:5500 -- local server for local testing, 
+```
+
+**There is no build/bundle step for the simulator itself, and none is planned.** `package.json` exists only to pin dev tooling versions -- `scripts/` is still plain ES6 modules loaded directly by the browser via `<script type="module" src="scripts/vent-scripts.js">`, no bundler.
+
+### Hosting split: GitHub Pages (scripts) + D2L (index.html only)
+
+Only `index.html` and a course's `settings.json` get uploaded to D2L. Everything under `scripts/` is served from GitHub Pages instead (`https://vie74050.github.io/VentilatorLungSim/scripts/...`), so updating the simulator for every course is one push, not one re-upload per course.
+
+`index.html` in the repo keeps plain relative paths (`scripts/vent-scripts.js`, etc.) on purpose -- that's what makes `npm run serve` work for local testing (uncommitted changes included), and it also means the live GitHub Pages URL itself is a legitimate same-origin test environment, no rewriting needed, before you even think about D2L.
+
+The version of `index.html` that actually goes to D2L needs those relative paths rewritten to the absolute GitHub Pages URL. That rewrite is a **deploy step, not a build step** -- it runs only when preparing a D2L upload, never as part of loading the page:
+
+```bash
+npm run build:d2l
+# -> writes dist/index.html with scripts/... rewritten to
+#    https://vie74050.github.io/VentilatorLungSim/scripts/...
+# Upload dist/index.html (+ that course's settings.json) to D2L.
+# Do not upload the scripts/ folder to D2L.
+```
+
+For development, create a release version for testing, otherwise this would be updating live dependencies.
+e.g. add version lock to d2l builds:
+
+```bash
+node tools/build-d2l-index.js --base https://cdn.jsdelivr.net/gh/vie74050/VentilatorLungSim@v1.0.0/scripts
+```
+
+`dist/` is generated and gitignored -- regenerate it with `npm run build:d2l` whenever `index.html` or the target base URL changes, rather than hand-editing or committing it.
+
 ## Development Reference
 
 Intended endpoint will be an HTML page that can be deployed to D2L as an all client-side, no-build, single content page.
-
-`vent-scripts.js` (wrapped in an IIFE, no imports/exports, no bundler).  
-It draws the ventilator control panel and continuously simulates a "patient" breathing on that ventilator, at 50 simulation steps per second, rendering the scrolling waveforms and driving the svg & webGl animations.
 
 ### Physiologic Simulation Overview
 
