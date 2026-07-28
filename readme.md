@@ -12,10 +12,9 @@ A web-based training simulator for mechanical ventilation that models core respi
 index.html             <- layout, relative paths (scripts/...)
 scripts/
   vent-scripts.js      <- ES module entry point
-  src/                 <- core/ modes/ physiology/ render/ ui/ persistence/ unity/
+  src/                 <- core/ modes/ physiology/ render/ ui/ persistence/ 
   styles.css           <- layout, styling
   assets/              
-  unity-bridge.js      <- communicates with Unity webGL(TBD), if present 
   update-version.js    <- For GH page pipeline, see .github/workflows/pages.yml
 
 // for local dev test
@@ -25,9 +24,7 @@ tools/
 
 ```
 
-Everything under `scripts/` is either a DOM/2D-fallback dependency (`styles.css`, `assets/`, the 2D SVG code path in `src/render/`) or the Unity bridge -- all of it is loaded by `index.html`, none of it is Unity build output itself (that would live in its own `Build/` folder if/when added, same as the commented-out loader placeholder in `index.html`).
-
-The simulator is split across `scripts/src/core/`, `scripts/src/modes/`, `scripts/src/physiology/`, `scripts/src/render/`, `scripts/src/ui/`, `scripts/src/persistence/`, and `scripts/src/unity/`, wired together by `scripts/src/VentSimApp.js` and loaded via the thin entry point `scripts/vent-scripts.js` (`<script type="module">`, native browser ES modules, no bundler).
+The simulator is split across `scripts/src/core/`, `scripts/src/modes/`, `scripts/src/physiology/`, `scripts/src/render/`, `scripts/src/ui/`, `scripts/src/persistence/`; wired together by `scripts/src/VentSimApp.js` and loaded via the thin entry point `scripts/vent-scripts.js` (`<script type="module">`, native browser ES modules, no bundler).
 
 It draws the ventilator control panel and continuously simulates a "patient" breathing on that ventilator, at 50 simulation steps per second, rendering the scrolling waveforms and driving the svg & webGl animations.
 
@@ -97,7 +94,7 @@ Below documents the different manipulation of this under each **Ventilator Mode*
 | --- | --- | --- | --- |
 | Tidal volume | 150–700 mL | `settings.VC.tv` | Target inspiratory volume |
 | Respiratory rate | 5–35 br/min | `settings.VC.rr` | Cycle timing |
-| PEEP | 0–20 cmH₂O | `settings.VC.peep` | Baseline pressure |
+| PEEP | 5-20 cmH₂O | `settings.VC.peep` | Baseline pressure |
 | FiO₂ | 21–100% | `settings.VC.fio2` | SpO₂/PaO₂ only (§5) |
 
 **Cycle timing:**
@@ -137,7 +134,7 @@ Paw = PEEP + Vol/C
 | --- | --- | --- | --- |
 | PC above PEEP | 5–35 cmH₂O | `settings.PC.pc` | Target inspiratory pressure |
 | Respiratory rate | 5–35 br/min | `settings.PC.rr` | Cycle timing |
-| PEEP | 0–20 cmH₂O | `settings.PC.peep` | Baseline pressure |
+| PEEP | 5-20 cmH₂O | `settings.PC.peep` | Baseline pressure |
 | FiO₂ | 21–100% | `settings.PC.fio2` | SpO₂/PaO₂ only (§5) |
 
 **Cycle timing:** same as VC (`Ti = totalCycle × 0.35`).
@@ -168,7 +165,7 @@ CHECK: expect decrease compliance or increased resistance makes **VTe fall** in 
 | Control | Slider range | Variable | Directly affects |
 | --- | --- | --- | --- |
 | PS above PEEP | 0–30 cmH₂O | `settings.PS.ps` | Pressure support magnitude for patient-triggered breaths |
-| PEEP | 0–20 cmH₂O | `settings.PS.peep` | Baseline pressure |
+| PEEP | 5-20 cmH₂O | `settings.PS.peep` | Baseline pressure |
 | Backup RR | 4–30 br/min | `settings.PS.backupRR` | Rate when effort = 0 |
 | Backup PC above PEEP | 5–35 cmH₂O | `settings.PS.backupPC` | Pressure target when effort = 0 (§3.1) |
 | FiO₂ | 21–100% | `settings.PS.fio2` | SpO₂/PaO₂ only (§5) |
@@ -265,12 +262,13 @@ effectiveCompliance():
 
 #### 4.3 Anatomy Visualization Variables
 
-These don't affect Paw/Flow/Vol — they're purely for the visual (SVG or Unity).
+These don't affect Paw/Flow/Vol — they're purely for the visual (SVG).
 
 `derivedPatientFractions` convert patient and vent parameters to vars that drive the visualization:
 
 ```formula
 LUNGS
+peepFrac        = PEEP / 20;                                       (slider sPEEP range 5-20)
 fillFrac        = clamp(Vol / 0.8, 0, 1)                           (0.8 L ≈ visual full-scale)
 expGain         = 0.55 + (clamp(C_display,10,100) − 10)/90 × 0.6   (uses displayed C, not effective C)
 stiffFrac       = clamp((100 − C_display)/90, 0, 1)                ( 1 = darker, stiff to 0 = pink,normal)

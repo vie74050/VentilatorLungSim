@@ -22,7 +22,6 @@ import { ModeController } from "./ui/ModeController.js";
 import { PresetManager } from "./ui/PresetManager.js";
 
 import { SnapshotService } from "./persistence/SnapshotService.js";
-import { UnitySnapshotBuilder } from "./unity/UnitySnapshotBuilder.js";
 
 const HIST_SECONDS = 8;
 const FS = 50; // sim steps per second, matches Ventilator's clock
@@ -47,10 +46,8 @@ export class VentSimApp {
     this.gasExchange = new GasExchangeModel();
     this.history = new BreathHistory(HIST_SECONDS, FS);
     this.autoscale = new Autoscale();
-    this.unitySnapshotBuilder = new UnitySnapshotBuilder();
 
-    // last-computed shared fractions, exposed to the Unity bridge via
-    // getUnitySnapshot() whenever it polls, and read (stale-by-one-frame,
+    // last-computed shared fractions, read (stale-by-one-frame,
     // same as the original) by GasExchangeModel at each breath boundary
     this.lastFractions = { rFrac: 0 };
 
@@ -158,11 +155,6 @@ export class VentSimApp {
 
     this.snapshotService.autoLoadFromDisk();
 
-    // hand the Unity loader's ready callback a way to pull a fresh
-    // snapshot the moment Unity comes online (see
-    // VentUnityBridge.setUnityInstance in unity-bridge.js)
-    this.window.getVentUnitySnapshot = () => this.getUnitySnapshot();
-
     requestAnimationFrame(this._loop);
   }
 
@@ -200,22 +192,8 @@ export class VentSimApp {
   }
 
   _updateVisuals(fractions) {
-    // check if Unity is ready (Unity WebGL sets a global variable when the
-    // engine is initialized)
-    const unityReady = this.window.VentUnityBridge && this.window.VentUnityBridge.isReady();
-    if (!unityReady) {
-      this.lungVisual.update(this.patient, fractions, this.gasExchange);
-    }
-    // Unity path needs no action here -- getVentUnitySnapshot() is polled
-    // by unity-bridge.js on its own cadence once Unity is ready.
-  }
-
-  getUnitySnapshot() {
-    return this.unitySnapshotBuilder.build({
-      patient: this.patient,
-      breath: this.ventilator.breath,
-      fractions: this.lastFractions,
-      gas: this.gasExchange,
-    });
+    
+    this.lungVisual.update(this.patient, fractions, this.gasExchange);
+    
   }
 }

@@ -1,8 +1,7 @@
 // ---------------- SHARED PATIENT-DERIVED FRACTIONS ----------------
 // derivePatientFractions() is the single source of truth for every
 // normalized 0-1 (or small-range) visual quantity derived from
-// Patient + BreathState. Both the SVG renderer (LungVisual2D) and the
-// Unity bridge (UnitySnapshotBuilder) consume this same object -- neither
+// Patient + BreathState. The SVG renderer (LungVisual2D) consumes this same object -- neither
 // one re-derives these formulas independently, so the two visuals can
 // never drift apart.
 //
@@ -35,8 +34,7 @@ export class PatientFractions {
     const rightLungFrac = patient.rightCollapsed ? 0 : fillFrac * expGain;
 
     // Per-side bronchus width (SVG stroke-width units, not a 0-1
-    // fraction), already collapse-aware -- computed here so neither the
-    // SVG renderer nor the Unity bridge reimplements the resistance logic.
+    // fraction), already collapse-aware 
     const BRONCH_OPEN_WIDTH = 6 - rFrac * 3.2; // narrows as resistance climbs
     const BRONCH_OCCLUDED_WIDTH = 1.8;
     const bronchLWidth = patient.leftCollapsed

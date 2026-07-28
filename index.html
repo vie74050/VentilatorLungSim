@@ -53,7 +53,7 @@
             </div>
           </div>
 
-          <!-- Anatomy visualizer (2D fallback -- visible until Unity signals ready) -->
+          <!-- Anatomy visualizer (2D) -->
           <svg id="lungSvg" 
             width="400"
             height="300"
@@ -151,14 +151,6 @@
             </g>
           </svg>
 
-          <!-- Unity WebGL 3D lung visualizer -- hidden until unity-bridge.js
-               confirms the instance is ready, then it replaces the SVG above.
-               The actual Unity loader script (unityLoader.js / your Build
-               folder's loader) is expected to create its canvas inside this
-               div and call VentUnityBridge.setUnityInstance(instance) in its
-               .then() callback. See scripts/unity-bridge.js. -->
-          <div id="unityContainer" style="display:none;"></div>
-
         </div>
 
         <div class="scope">
@@ -229,7 +221,7 @@
           </div>
           <div class="slider-row">
             <div class="top"><label>PEEP</label><span class="readout"><span id="rPEEPvc">5.0</span> cmH&#8322;O</span></div>
-            <input type="range" id="sPEEPvc" min="0" max="20" step="0.5" value="5">
+            <input type="range" id="sPEEPvc" min="5" max="20" step="0.5" value="5">
           </div>
           <div class="slider-row">
             <div class="top"><label>Respiratory rate</label><span class="readout"><span id="rRRvc">16</span> br/min</span></div>
@@ -248,7 +240,7 @@
           </div>
           <div class="slider-row">
             <div class="top"><label>PEEP</label><span class="readout"><span id="rPEEPpc">8.0</span> cmH&#8322;O</span></div>
-            <input type="range" id="sPEEPpc" min="0" max="20" step="0.5" value="8">
+            <input type="range" id="sPEEPpc" min="5" max="20" step="0.5" value="8">
           </div>
           <div class="slider-row">
             <div class="top"><label>Respiratory rate</label><span class="readout"><span id="rRRpc">18</span> br/min</span></div>
@@ -267,7 +259,7 @@
           </div>
           <div class="slider-row">
             <div class="top"><label>PEEP</label><span class="readout"><span id="rPEEPps">5.0</span> cmH&#8322;O</span></div>
-            <input type="range" id="sPEEPps" min="0" max="20" step="0.5" value="5">
+            <input type="range" id="sPEEPps" min="5" max="20" step="0.5" value="5">
           </div>
           <div class="slider-row">
             <div class="top"><label>PS above PEEP</label><span class="readout"><span id="rPS">5</span> cmH&#8322;O</span></div>
@@ -385,30 +377,6 @@
 
 <script src="scripts/update-version.js"></script>
 <script type="module" src="scripts/vent-scripts.js"></script>
-<script src="scripts/unity-bridge.js" defer></script>
-
-<!--
-  UNITY WEBGL LOADER -- 
-
-<script src="Build/YourBuild.loader.js"></script>
-<script>
-  var buildConfig = {
-    dataUrl: "Build/YourBuild.data",
-    frameworkUrl: "Build/YourBuild.framework.js",
-    codeUrl: "Build/YourBuild.wasm"
-    // ...streamingAssetsUrl, companyName, productName, productVersion, etc.
-  };
-
-  createUnityInstance(document.querySelector("#unityContainer canvas"), buildConfig, (progress) => {
-    // optional: wire a loading indicator to `progress` (0-1) here
-  }).then((unityInstance) => {
-    // <-- the two lines that connect this build to the ventilator sim:
-    VentUnityBridge.setUnityInstance(unityInstance, window.getVentUnitySnapshot);
-  }).catch((err) => {
-    console.error("Unity failed to load, staying on 2D SVG lung view:", err);
-  });
-</script>
--->
 
 </body>
 </html>
