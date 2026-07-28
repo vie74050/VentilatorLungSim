@@ -64,11 +64,11 @@ node tools/build-d2l-index.js --base https://cdn.jsdelivr.net/gh/vie74050/Ventil
 
 `dist/` is generated and gitignored -- regenerate it with `npm run build:d2l` whenever `index.html` or the target base URL changes, rather than hand-editing or committing it.
 
-## Development Reference
+Intended endpoint will be an HTML page that can be deployed to D2L alonge with settings.json for each case.
 
-Intended endpoint will be an HTML page that can be deployed to D2L as an all client-side, no-build, single content page.
+---
 
-### Physiologic Simulation Overview
+## Physiologic Simulation Overview
 
 The "patient" is modeled as one elastic balloon (a **single-compartment lung model**), governed by one equation used everywhere in `step()`:
 
@@ -347,11 +347,3 @@ Gas exchange values are recalculated **once per completed breath** (at the insp�
 | Resistance (higher) | ↑ (adds R×Flow term directly) | ↓ (less flow gets through per unit pressure) | longer τ = R×C → much slower, classic obstructive pattern | ↓ slightly (via shuntFrac) | ↑ (via VA↓) |
 | Patient effort (PS mode only) | n/a | n/a — but drives *rate* up, so more breaths/min | n/a | indirect, via VA↑ (faster rate) | ↓ |
 | Collapse a lung | ↑ | ↓ | shorter (lower effective C shortens τ) | ↓ (shunt +0.25 flat penalty) | ↑ (VTe drops, so VA drops) |
-
----
-
-### 7. To be discussed with SMEs
-
-- **Hemodynamic model, end organ impacts** — cardiac output, interaction between intrathoracic pressure and venous return, effect of PEEP on brain, bp...etc.?
-- **Temperature, pH, or full CO₂ transport model** — PaCO₂ here is a simplified alveolar-ventilation-only estimate, not a full metabolic/buffering model.
-- **Equipment conditions: leak, disconnect, or alarm conditions.**
