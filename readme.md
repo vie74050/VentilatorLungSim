@@ -2,14 +2,70 @@
 
 A web-based training simulator for mechanical ventilation that models core respiratory mechanics and gas-exchange trends. It lets users adjust ventilator controls and set patient parameters to visualize pressure, flow, volume changes, and gas exchange.
 
-## Development Reference
+## Development Setup
 
-Intended endpoint will be an HTML page that can be deployed to D2L as an all client-side, no-build, single content page.
+**Node version:** 18 or later (only needed for local dev tooling -- linting, a local static server, and the D2L deploy script; nothing here is required to run the simulator itself).
 
-`vent-scripts.js` (wrapped in an IIFE, no imports/exports, no bundler).  
+**Repo layout:**
+
+```text
+index.html             <- layout, relative paths (scripts/...)
+scripts/
+  vent-scripts.js      <- ES module entry point
+  src/                 <- core/ modes/ physiology/ render/ ui/ persistence/ 
+  styles.css           <- layout, styling
+  assets/              
+  update-version.js    <- For GH page pipeline, see .github/workflows/pages.yml
+
+// for local dev test
+package.json 
+.eslintrc.json 
+tools/
+
+```
+
+The simulator is split across `scripts/src/core/`, `scripts/src/modes/`, `scripts/src/physiology/`, `scripts/src/render/`, `scripts/src/ui/`, `scripts/src/persistence/`; wired together by `scripts/src/VentSimApp.js` and loaded via the thin entry point `scripts/vent-scripts.js` (`<script type="module">`, native browser ES modules, no bundler).
+
 It draws the ventilator control panel and continuously simulates a "patient" breathing on that ventilator, at 50 simulation steps per second, rendering the scrolling waveforms and driving the svg & webGl animations.
 
-### Physiologic Simulation Overview
+```bash
+npm install     # installs devDependencies (eslint, serve)
+npm run lint    # lints scripts/src/**/*.js and scripts/vent-scripts.js, must report 0 warnings
+npm run serve   # serves the project at http://localhost:5500 -- local server for local testing, 
+```
+
+**There is no build/bundle step for the simulator itself, and none is planned.** `package.json` exists only to pin dev tooling versions -- `scripts/` is still plain ES6 modules loaded directly by the browser via `<script type="module" src="scripts/vent-scripts.js">`, no bundler.
+
+### Hosting split: GitHub Pages (scripts) + D2L (index.html only)
+
+Only `index.html` and a course's `settings.json` get uploaded to D2L. Everything under `scripts/` is served from GitHub Pages instead (`https://vie74050.github.io/VentilatorLungSim/scripts/...`), so updating the simulator for every course is one push, not one re-upload per course.
+
+`index.html` in the repo keeps plain relative paths (`scripts/vent-scripts.js`, etc.) on purpose -- that's what makes `npm run serve` work for local testing (uncommitted changes included), and it also means the live GitHub Pages URL itself is a legitimate same-origin test environment, no rewriting needed, before you even think about D2L.
+
+The version of `index.html` that actually goes to D2L needs those relative paths rewritten to the absolute GitHub Pages URL. That rewrite is a **deploy step, not a build step** -- it runs only when preparing a D2L upload, never as part of loading the page:
+
+```bash
+npm run build:d2l
+# -> writes dist/index.html with scripts/... rewritten to
+#    https://vie74050.github.io/VentilatorLungSim/scripts/...
+# Upload dist/index.html (+ that course's settings.json) to D2L.
+# Do not upload the scripts/ folder to D2L.
+```
+
+For development, create a release version for testing, otherwise this would be updating live dependencies.
+e.g. add version lock to d2l builds:
+
+```bash
+node tools/build-d2l-index.js --base https://cdn.jsdelivr.net/gh/vie74050/VentilatorLungSim@v1.0.0/scripts
+```
+
+`dist/` is generated and gitignored -- regenerate it with `npm run build:d2l` whenever `index.html` or the target base URL changes, rather than hand-editing or committing it.
+
+Intended endpoint will be an HTML page that can be deployed to D2L alonge with settings.json for each case.
+
+---
+
+## Physiologic Simulation Overview
 
 The "patient" is modeled as one elastic balloon (a **single-compartment lung model**), governed by one equation used everywhere in `step()`:
 
@@ -38,7 +94,7 @@ Below documents the different manipulation of this under each **Ventilator Mode*
 | --- | --- | --- | --- |
 | Tidal volume | 150–700 mL | `settings.VC.tv` | Target inspiratory volume |
 | Respiratory rate | 5–35 br/min | `settings.VC.rr` | Cycle timing |
-| PEEP | 0–20 cmH₂O | `settings.VC.peep` | Baseline pressure |
+| PEEP | 5-20 cmH₂O | `settings.VC.peep` | Baseline pressure |
 | FiO₂ | 21–100% | `settings.VC.fio2` | SpO₂/PaO₂ only (§5) |
 
 **Cycle timing:**
@@ -78,7 +134,7 @@ Paw = PEEP + Vol/C
 | --- | --- | --- | --- |
 | PC above PEEP | 5–35 cmH₂O | `settings.PC.pc` | Target inspiratory pressure |
 | Respiratory rate | 5–35 br/min | `settings.PC.rr` | Cycle timing |
-| PEEP | 0–20 cmH₂O | `settings.PC.peep` | Baseline pressure |
+| PEEP | 5-20 cmH₂O | `settings.PC.peep` | Baseline pressure |
 | FiO₂ | 21–100% | `settings.PC.fio2` | SpO₂/PaO₂ only (§5) |
 
 **Cycle timing:** same as VC (`Ti = totalCycle × 0.35`).
@@ -109,7 +165,7 @@ CHECK: expect decrease compliance or increased resistance makes **VTe fall** in 
 | Control | Slider range | Variable | Directly affects |
 | --- | --- | --- | --- |
 | PS above PEEP | 0–30 cmH₂O | `settings.PS.ps` | Pressure support magnitude for patient-triggered breaths |
-| PEEP | 0–20 cmH₂O | `settings.PS.peep` | Baseline pressure |
+| PEEP | 5-20 cmH₂O | `settings.PS.peep` | Baseline pressure |
 | Backup RR | 4–30 br/min | `settings.PS.backupRR` | Rate when effort = 0 |
 | Backup PC above PEEP | 5–35 cmH₂O | `settings.PS.backupPC` | Pressure target when effort = 0 (§3.1) |
 | FiO₂ | 21–100% | `settings.PS.fio2` | SpO₂/PaO₂ only (§5) |
@@ -206,12 +262,13 @@ effectiveCompliance():
 
 #### 4.3 Anatomy Visualization Variables
 
-These don't affect Paw/Flow/Vol — they're purely for the visual (SVG or Unity).
+These don't affect Paw/Flow/Vol — they're purely for the visual (SVG).
 
 `derivedPatientFractions` convert patient and vent parameters to vars that drive the visualization:
 
 ```formula
 LUNGS
+peepFrac        = PEEP / 20;                                       (slider sPEEP range 5-20)
 fillFrac        = clamp(Vol / 0.8, 0, 1)                           (0.8 L ≈ visual full-scale)
 expGain         = 0.55 + (clamp(C_display,10,100) − 10)/90 × 0.6   (uses displayed C, not effective C)
 stiffFrac       = clamp((100 − C_display)/90, 0, 1)                ( 1 = darker, stiff to 0 = pink,normal)
@@ -288,11 +345,3 @@ Gas exchange values are recalculated **once per completed breath** (at the insp�
 | Resistance (higher) | ↑ (adds R×Flow term directly) | ↓ (less flow gets through per unit pressure) | longer τ = R×C → much slower, classic obstructive pattern | ↓ slightly (via shuntFrac) | ↑ (via VA↓) |
 | Patient effort (PS mode only) | n/a | n/a — but drives *rate* up, so more breaths/min | n/a | indirect, via VA↑ (faster rate) | ↓ |
 | Collapse a lung | ↑ | ↓ | shorter (lower effective C shortens τ) | ↓ (shunt +0.25 flat penalty) | ↑ (VTe drops, so VA drops) |
-
----
-
-### 7. To be discussed with SMEs
-
-- **Hemodynamic model, end organ impacts** — cardiac output, interaction between intrathoracic pressure and venous return, effect of PEEP on brain, bp...etc.?
-- **Temperature, pH, or full CO₂ transport model** — PaCO₂ here is a simplified alveolar-ventilation-only estimate, not a full metabolic/buffering model.
-- **Equipment conditions: leak, disconnect, or alarm conditions.**

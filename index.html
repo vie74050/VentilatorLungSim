@@ -53,60 +53,62 @@
             </div>
           </div>
 
-          <!-- Anatomy visualizer (2D fallback -- visible until Unity signals ready) -->
+          <!-- Anatomy visualizer (2D) -->
           <svg id="lungSvg" 
-            width="300"
-            height="250"
-            viewBox="0 0 220 330" 
+            width="400"
+            height="300"
+            viewBox="0 0 220 400" 
             xmlns="http://www.w3.org/2000/svg">
-            
-            <!-- trachea -->
-            <g id="trachea">
-              <rect x="103" y="10" width="14" height="38" rx="4" fill="#e7c9b8"/>
-              <line x1="103" y1="15" x2="117" y2="15" stroke="#b89a89" stroke-width="1.2"/>
-              <line x1="103" y1="22" x2="117" y2="22" stroke="#b89a89" stroke-width="1.2"/>
-              <line x1="103" y1="29" x2="117" y2="29" stroke="#b89a89" stroke-width="1.2"/>
-              <line x1="103" y1="36" x2="117" y2="36" stroke="#b89a89" stroke-width="1.2"/>
-              <line x1="103" y1="43" x2="117" y2="43" stroke="#b89a89" stroke-width="1.2"/>
-            </g>
 
-            <!-- bronchi -->
-            <path id="bronchR" d="M108,46 C95,58 78,64 64,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
-            <path id="bronchL" d="M112,46 C126,58 144,64 158,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
+            <g id="airwayGroup" transform="translate(0, 100)">
+              <!-- trachea -->
+              <g id="trachea">
+                <rect x="103" y="10" width="14" height="38" rx="4" fill="#e7c9b8"/>
+                <line x1="103" y1="15" x2="117" y2="15" stroke="#b89a89" stroke-width="1.2"/>
+                <line x1="103" y1="22" x2="117" y2="22" stroke="#b89a89" stroke-width="1.2"/>
+                <line x1="103" y1="29" x2="117" y2="29" stroke="#b89a89" stroke-width="1.2"/>
+                <line x1="103" y1="36" x2="117" y2="36" stroke="#b89a89" stroke-width="1.2"/>
+                <line x1="103" y1="43" x2="117" y2="43" stroke="#b89a89" stroke-width="1.2"/>
+              </g>
 
-            <!-- lungs (these scale/breathe) -->
-            <g id="lungR" style="transform-origin:100px 80px;">
-              <image
-                id="lungRimg"
-                href="scripts/assets/rightLung.svg"
-                x="-10"
-                y="50"
-                width="100"
-                height="180"
-                preserveAspectRatio="none"
-            />
-                            
-            </g>
+              <!-- bronchi -->
+              <path id="bronchR" d="M108,46 C95,58 78,64 64,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
+              <path id="bronchL" d="M112,46 C126,58 144,64 158,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
 
-            <g id="lungL" style="transform-origin:120px 80px;">
-              <image
-                id="lungLimg"
-                href="scripts/assets/leftLung.svg"
-                x="130"
-                y="50"
-                width="100"
-                height="180"
-                preserveAspectRatio="none"    
+              <!-- lungs (these scale/breathe) -->
+              <g id="lungR" style="transform-origin:100px 80px;">
+                <image
+                  id="lungRimg"
+                  href="scripts/assets/rightLung.svg"
+                  x="-10"
+                  y="50"
+                  width="100"
+                  height="180"
+                  preserveAspectRatio="none"
               />
-              
-            </g>
+                              
+              </g>
 
+              <g id="lungL" style="transform-origin:120px 80px;">
+                <image
+                  id="lungLimg"
+                  href="scripts/assets/leftLung.svg"
+                  x="130"
+                  y="50"
+                  width="100"
+                  height="180"
+                  preserveAspectRatio="none"    
+                />
+                
+              </g>
+            </g>
+                       
             <!-- alveoli inset panel -->
-            <g id="alveoliInset" transform-origin="14px 252px" transform="scale(1.5) translate(-110, -5)">
+            <g id="alveoliInset" transform-origin="14px 252px" transform="scale(1.6) translate(-140, 40)">
               <rect x="14" y="252" width="192" height="40" rx="6" fill="#15171a" stroke="#34383d" stroke-width="1"/>
               <text x="22" y="265" font-family="IBM Plex Mono, monospace" font-size="7" fill="#8c9094" letter-spacing="0.3">ALVEOLI</text>
 
-              <path d="M30,283 L70,283 M70,283 L95,283 M95,283 L150,283 M150,283 L200,283"
+              <path id="capillaryPath" d="M30,283 L70,283 M70,283 L95,283 M95,283 L150,283 M150,283 L200,283"
                     stroke="#c98a78" stroke-width="3" fill="none" stroke-linecap="round"/>
 
               <g id="alvGroup">
@@ -148,14 +150,6 @@
               </g>
             </g>
           </svg>
-
-          <!-- Unity WebGL 3D lung visualizer -- hidden until unity-bridge.js
-               confirms the instance is ready, then it replaces the SVG above.
-               The actual Unity loader script (unityLoader.js / your Build
-               folder's loader) is expected to create its canvas inside this
-               div and call VentUnityBridge.setUnityInstance(instance) in its
-               .then() callback. See scripts/unity-bridge.js. -->
-          <div id="unityContainer" style="display:none;"></div>
 
         </div>
 
@@ -227,7 +221,7 @@
           </div>
           <div class="slider-row">
             <div class="top"><label>PEEP</label><span class="readout"><span id="rPEEPvc">5.0</span> cmH&#8322;O</span></div>
-            <input type="range" id="sPEEPvc" min="0" max="20" step="0.5" value="5">
+            <input type="range" id="sPEEPvc" min="5" max="20" step="0.5" value="5">
           </div>
           <div class="slider-row">
             <div class="top"><label>Respiratory rate</label><span class="readout"><span id="rRRvc">16</span> br/min</span></div>
@@ -246,7 +240,7 @@
           </div>
           <div class="slider-row">
             <div class="top"><label>PEEP</label><span class="readout"><span id="rPEEPpc">8.0</span> cmH&#8322;O</span></div>
-            <input type="range" id="sPEEPpc" min="0" max="20" step="0.5" value="8">
+            <input type="range" id="sPEEPpc" min="5" max="20" step="0.5" value="8">
           </div>
           <div class="slider-row">
             <div class="top"><label>Respiratory rate</label><span class="readout"><span id="rRRpc">18</span> br/min</span></div>
@@ -265,7 +259,7 @@
           </div>
           <div class="slider-row">
             <div class="top"><label>PEEP</label><span class="readout"><span id="rPEEPps">5.0</span> cmH&#8322;O</span></div>
-            <input type="range" id="sPEEPps" min="0" max="20" step="0.5" value="5">
+            <input type="range" id="sPEEPps" min="5" max="20" step="0.5" value="5">
           </div>
           <div class="slider-row">
             <div class="top"><label>PS above PEEP</label><span class="readout"><span id="rPS">5</span> cmH&#8322;O</span></div>
@@ -381,32 +375,8 @@
   <footer>For educational use only - 🄯 BCIT Share with attribution, no modifications.</footer>
 </div>
 
-<script src="scripts/unity-bridge.js"></script>
-<script src="scripts/vent-scripts.js"></script>
 <script src="scripts/update-version.js"></script>
-
-<!--
-  UNITY WEBGL LOADER -- 
-
-<script src="Build/YourBuild.loader.js"></script>
-<script>
-  var buildConfig = {
-    dataUrl: "Build/YourBuild.data",
-    frameworkUrl: "Build/YourBuild.framework.js",
-    codeUrl: "Build/YourBuild.wasm"
-    // ...streamingAssetsUrl, companyName, productName, productVersion, etc.
-  };
-
-  createUnityInstance(document.querySelector("#unityContainer canvas"), buildConfig, (progress) => {
-    // optional: wire a loading indicator to `progress` (0-1) here
-  }).then((unityInstance) => {
-    // <-- the two lines that connect this build to the ventilator sim:
-    VentUnityBridge.setUnityInstance(unityInstance, window.getVentUnitySnapshot);
-  }).catch((err) => {
-    console.error("Unity failed to load, staying on 2D SVG lung view:", err);
-  });
-</script>
--->
+<script type="module" src="scripts/vent-scripts.js"></script>
 
 </body>
 </html>
