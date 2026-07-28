@@ -206,7 +206,8 @@
 
     <div class="deck-tabs modeselect">
       <button class="deck-tab active" data-tab="ventilator" type="button">Ventilator Controls</button>
-      <button class="deck-tab" data-tab="patient" type="button">Patient Parameters</button>
+      <button class="deck-tab" data-tab="lungs" type="button">Lungs &amp; Airway</button>
+      <button class="deck-tab" disabled="true" data-tab="heart" type="button">Heart & End Organ</button>
     </div>
 
     <div class="deck-grid">
@@ -277,8 +278,8 @@
       </div>
 
       <!-- PATIENT CARD -->
-      <div class="card setup-ui" data-tab-panel="patient" style="display:none;">
-        <h3>Lung & Respiratory mechanics</h3>
+      <div class="card setup-ui" data-tab-panel="lungs" style="display:none;">
+        <h3>Lungs & Respiratory mechanics</h3>
 
         <div class="slider-col-parent">
           <div class="slider-row">
@@ -325,8 +326,9 @@
           </select>
         </div>
 
-        <div class="divider"></div>
-
+      </div>
+    
+      <div class="card setup-ui" data-tab-panel="heart" style="display:none;">
         <h3>Heart mechanics</h3>
 
         <div class="slider-col-parent">
