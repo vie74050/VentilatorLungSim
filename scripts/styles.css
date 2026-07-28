@@ -531,7 +531,7 @@ canvas#scopeCanvas {
     cursor: pointer;
 }
 
-.deck-action-btn:hover {
+.deck-action-btn:not(:disabled):hover {
     border-color: var(--cyan);
     color: var(--text-hi);
 }
@@ -546,7 +546,7 @@ canvas#scopeCanvas {
     background: transparent;
     border: 1.5px solid var(--line);
     border-bottom: none;
-    color: var(--text-dim);
+    color: var(--text-hi);
     border-radius: 9px;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
@@ -558,15 +558,18 @@ canvas#scopeCanvas {
     text-align: center;
     transition: border-color .15s, color .15s, background .15s;
 }
-
-.deck-tab:hover {
+.deck-tab:disabled {
+    opacity: 0.4;
+    cursor: default;
+    color: var(--text-dim);
+}   
+.deck-tab:not(:disabled):hover {
     border-color: #52565b;
     color: var(--text-hi);
 }
 
 .deck-tab.active {
     border-color: var(--magenta);
-    color: var(--text-hi);
     background: linear-gradient(180deg,  rgba(232, 51, 110, 0.16), var(--bg-panel));
 }
 .deck-tab.active[data-tab="patient"] {
