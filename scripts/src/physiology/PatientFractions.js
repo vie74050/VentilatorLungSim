@@ -10,14 +10,17 @@
 // than hardcoded here, so these fractions always match whatever range the
 // UI actually allows.
 export class PatientFractions {
-  static derive({ patient, breath, bounds }) {
+  static derive({ patient, breath, bounds, peep }) {
     const { compMin, compMax, resMin, resMax } = bounds;
     const C = patient.compliance;
     const R = patient.resistance;
     const nominalMaxL = 0.8; // 800 mL ~ visual full-scale
 
     const clampedC = Math.min(Math.max(C, compMin), compMax);
-    const fillFrac = Math.max(0, Math.min(1, breath.Vol / nominalMaxL));
+    const peepFrac = peep / 20;    
+    // PEEP normalized to 0-1, 20cmH2O = max PEEP 
+    // this is the min fill fraction for alveoli, so alveoli never visually collapse below this fraction
+    const fillFrac = 0.5 * peepFrac + 0.5 * Math.max(0, Math.min(1, breath.Vol / nominalMaxL));
     const expGain =
       1 + ((clampedC - compMin) / (compMax - compMin)) * 0.6; // 1...1.6
     const stiffFrac = Math.max(

@@ -178,10 +178,12 @@ export class VentSimApp {
 
     // single source of truth for both visualizations below
     const bounds = readPatientSliderBounds(this.$);
+    const peep = this.settings[this.ventilator.mode].peep;
     const fractions = PatientFractions.derive({
       patient: this.patient,
       breath: this.ventilator.breath,
       bounds,
+      peep
     });
     Object.assign(fractions, PatientFractions.deriveGasFractions(this.gasExchange));
     this.lastFractions = fractions;
