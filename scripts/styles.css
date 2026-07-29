@@ -210,7 +210,7 @@ canvas#scopeCanvas {
     background: var(--bg-screen);
     border-radius: 8px;
     flex: 1 1 auto;
-    min-width: 0;
+    min-width: 400px;
     padding: 8px;
     display: flex;
     flex-direction: column;
@@ -267,10 +267,10 @@ canvas#scopeCanvas {
 .alv {
     fill: #e8978a;
     stroke: #a8453a;
-    stroke-width: 0.8;
+    stroke-width: 0.3;
     transition: transform 0.05s linear, fill 0.15s linear;
     transform-box: fill-box;
-    transform-origin: bottom center;
+    transform-origin: left center;
 }
 
 /* ---------- GAS EXCHANGE DOTS (O2/CO2 at the alveoli) ----------
@@ -292,8 +292,10 @@ canvas#scopeCanvas {
 }
 
 #gasExchange {
-    --o2-intensity: 0.5;
-    --co2-intensity: 0.3;
+    --o2-size: 1;
+    --co2-size: 1;
+    --o2-intensity: 1;
+    --co2-intensity: 1;
     --o2-duration: 1.8s;
     --co2-duration: 2.2s;
 }
@@ -328,19 +330,19 @@ canvas#scopeCanvas {
 }
 
 @keyframes gasO2Drift {
-    0%   { opacity: 0; transform: translateY(0); }
-    35%  { opacity: var(--o2-intensity); }
-    100% { opacity: 0; transform: translateY(6px); }
+    0%   { opacity: 0; transform: translateX(3px) scale(var(--o2-size)); }
+    35%  { opacity: var(--o2-intensity); transform: translateX(0) scale(var(--o2-size)); }
+    100% { opacity: 0; transform: translateX(-6px) scale(var(--o2-size)); }
 }
 
 @keyframes gasCo2Drift {
-    0%   { opacity: 0; transform: translateY(0); }
-    35%  { opacity: var(--co2-intensity); }
-    100% { opacity: 0; transform: translateY(-6px); }
+    0%   { opacity: 0; transform: translateX(-3px) scale(var(--co2-size)); }
+    35%  { opacity: var(--co2-intensity); transform: translateX(0) scale(var(--co2-size)); }
+    100% { opacity: 0; transform: translateX(6px) scale(var(--co2-size)); }
 }
 @keyframes gasCollapsed {
-    0%   { opacity: 0; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(0); }
+    0%   { opacity: 0; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(0); }
 }
 
 #bronchL,

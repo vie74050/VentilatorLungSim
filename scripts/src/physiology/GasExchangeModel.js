@@ -1,10 +1,11 @@
 // ---------------- GAS EXCHANGE ----------------
 // FiO2 does NOT affect lung mechanics (compliance/resistance/inflation) --
 // physiologically it only affects how much oxygen is available to diffuse
-// into blood. This is a deliberately simplified model (illustrative, not a
-// clinical calculator) that ties oxygenation to variables the sim already
+// This is a simplified model to tie oxygenation to variables the sim already
 // tracks, so a collapsed lung / bad compliance / bad resistance naturally
 // produces worse oxygenation without needing separate new sliders.
+// Reference: https://www.ncbi.nlm.nih.gov/books/NBK482268/
+
 export const GAS_CONSTANTS = {
   Patm: 760, // mmHg, atmospheric pressure
   PH2O: 47, // mmHg, water vapor pressure at body temp
@@ -16,7 +17,7 @@ export const GAS_CONSTANTS = {
 export class GasExchangeModel {
   constructor(constants = GAS_CONSTANTS) {
     this.GAS = constants;
-    this.spo2 = 98;
+    this.spO2 = 98;
     this.paO2 = 95;
     this.paCO2 = 40;
     this.shuntFrac = 0;
@@ -25,7 +26,7 @@ export class GasExchangeModel {
   // Recomputed once per completed breath, at the insp->exp transition.
   // rFrac is the shared resistance fraction from PatientFractions (0-1),
   // passed in rather than recomputed here to avoid depending on
-  // derivePatientFractions() having already run this tick.
+  // derive PatientFractions having already run this tick.
   update({ patient, peep, fio2, lastVTe, lastRRdisplay, rFrac }) {
     const GAS = this.GAS;
 
@@ -80,8 +81,8 @@ export class GasExchangeModel {
     this.paO2 = Math.min(Math.max(PAO2 * (1 - this.shuntFrac), 20), 650);
 
     // Severinghaus approximation of the oxyhemoglobin dissociation curve.
-    this.spo2 =
+    this.spO2 =
       100 / (23400 / (Math.pow(this.paO2, 3) + 150 * this.paO2) + 1);
-    this.spo2 = Math.min(Math.max(this.spo2, 40), 100);
+    this.spO2 = Math.min(Math.max(this.spO2, 40), 100);
   }
 }

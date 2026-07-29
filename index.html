@@ -48,8 +48,14 @@
               <span>R: <b id="lpRes">10</b></span>
             </div>
             <div class="lp-readout-row">
-              <span class="o2-icon">SpO&#8322;: <b id="lpSpO2">98</b>%</span>
-              <span class="co2-icon">PaCO&#8322;: <b id="lpPaCO2">40</b> mmHg</span>
+              <span class="spo2-icon">SpO&#8322;: <b id="lpSpO2">98</b>%</span>
+              <span class="pao2-icon">PaO&#8322;: <b id="lpPaO2">100</b> mmHg</span>
+              <span class="paco2-icon">PaCO&#8322;: <b id="lpPaCO2">40</b> mmHg</span>
+            </div>
+            <br>
+            <div class="lp-readout-row">
+              <span class="o2-icon">O&#8322;</span>
+              <span class="co2-icon">CO&#8322;</span>
             </div>
           </div>
 
@@ -103,50 +109,64 @@
               </g>
             </g>
                        
-            <!-- alveoli inset panel -->
-            <g id="alveoliInset" transform-origin="14px 252px" transform="scale(1.6) translate(-140, 40)">
-              <rect x="14" y="252" width="192" height="40" rx="6" fill="#15171a" stroke="#34383d" stroke-width="1"/>
-              <text x="22" y="265" font-family="IBM Plex Mono, monospace" font-size="7" fill="#8c9094" letter-spacing="0.3">ALVEOLI</text>
+            
+          </svg>
 
-              <path id="capillaryPath" d="M30,283 L70,283 M70,283 L95,283 M95,283 L150,283 M150,283 L200,283"
+          <svg id="alveoliSvg"
+            width="400"
+            height="300"
+            viewBox="0 0 300 200"
+            xmlns="http://www.w3.org/2000/svg">
+            <!-- alveoli inset panel -->
+            <g id="alveoliInset">
+              
+              <text x="0" y="0" font-family="IBM Plex Mono, monospace" font-size="7" fill="#8c9094" letter-spacing="0.3">ALVEOLI</text>
+
+              <path id="capillaryPath" d="M5,10 L5,210"
                     stroke="#c98a78" stroke-width="3" fill="none" stroke-linecap="round"/>
 
-              <g id="alvGroup">
-                <circle class="alv" cx="40" cy="278" r="3"/>
-                <circle class="alv" cx="58" cy="277.5" r="3.5"/>
-                <circle class="alv" cx="80" cy="277.3" r="3.7"/>
-                <circle class="alv" cx="105" cy="277" r="4"/>
-                <circle class="alv" cx="128" cy="277.6" r="3.4"/>
-                <circle class="alv" cx="150" cy="277.4" r="3.6"/>
-                <circle class="alv" cx="172" cy="277.1" r="3.1"/>
-                <circle class="alv" cx="188" cy="278" r="3"/>
+              <g id="alvGroup" transform="translate(10, 20)">
+                <circle class="alv" cy="0" cx="0" r="3"/>
+                <circle class="alv" cy="20" cx="0" r="3"/>
+                <circle class="alv" cy="40" cx="0" r="3"/>
+                <circle class="alv" cy="60" cx="0" r="3"/>
+                <circle class="alv" cy="80" cx="0" r="3"/>
+                <circle class="alv" cy="100" cx="0" r="3"/>
+                <circle class="alv" cy="120" cx="0" r="3"/>
+                <circle class="alv" cy="140" cx="0" r="3"/>
+                <circle class="alv" cy="160" cx="0" r="3"/>
+                <circle class="alv" cy="180" cx="0" r="3"/>
               </g>
 
               <!-- O2/CO2 exchange cues: fixed dot count, CSS-looped, intensity
                    driven by --o2-intensity/--co2-intensity (set once per
-                   breath in updateLungVisual() from spo2/paCO2). O2 dots
+                   breath in updateLungVisual() from spO2/paCO2). O2 dots
                    start at an alveolus and drift down to the capillary line;
                    CO2 dots start at the capillary line and drift up into the
                    alveolus -- reuses the existing capillary path as the
                    exchange boundary rather than inventing new geometry. -->
-              <g id="gasExchange">
-                <circle class="gas-dot gas-dot-o2" cx="40" cy="276" r="2" style="animation-delay:0s"/>
-                <circle class="gas-dot gas-dot-o2" cx="58" cy="277" r="2" style="animation-delay:0.3s"/>
-                <circle class="gas-dot gas-dot-o2" cx="80" cy="274" r="2" style="animation-delay:0.5s"/>
-                <circle class="gas-dot gas-dot-o2" cx="105" cy="277" r="2" style="animation-delay:0.9s"/>
-                <circle class="gas-dot gas-dot-o2" cx="128" cy="275" r="2" style="animation-delay:1s"/>
-                <circle class="gas-dot gas-dot-o2" cx="150" cy="278" r="2" style="animation-delay:1.2s"/>
-                <circle class="gas-dot gas-dot-o2" cx="172" cy="274" r="2" style="animation-delay:1.4s"/>
-                <circle class="gas-dot gas-dot-o2" cx="188" cy="277" r="2" style="animation-delay:1.7s"/>
+              <g id="gasExchange" transform="translate(10, 20)">
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="0" r="1" style="animation-delay:0s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="20" r="1" style="animation-delay:0.3s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="40" r="1" style="animation-delay:0.5s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="60" r="1" style="animation-delay:0.9s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="80" r="1" style="animation-delay:1s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="100" r="1" style="animation-delay:1.2s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="120" r="1" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="140" r="1" style="animation-delay:1.7s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="160" r="1" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="180" r="1" style="animation-delay:1.7s"/>
 
-                <circle class="gas-dot gas-dot-co2" cx="40" cy="283" r="2" style="animation-delay:0s"/>
-                <circle class="gas-dot gas-dot-co2" cx="58" cy="283" r="2" style="animation-delay:0.3s"/>
-                <circle class="gas-dot gas-dot-co2" cx="80" cy="283" r="2" style="animation-delay:0.5s"/>
-                <circle class="gas-dot gas-dot-co2" cx="105" cy="283" r="2" style="animation-delay:0.9s"/>
-                <circle class="gas-dot gas-dot-co2" cx="128" cy="283" r="2" style="animation-delay:1s"/>
-                <circle class="gas-dot gas-dot-co2" cx="150" cy="283" r="2" style="animation-delay:1.2s"/>
-                <circle class="gas-dot gas-dot-co2" cx="172" cy="283" r="2" style="animation-delay:1.4s"/>
-                <circle class="gas-dot gas-dot-co2" cx="188" cy="283" r="2" style="animation-delay:1.7s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="0" r="1" style="animation-delay:0s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="20" r="1" style="animation-delay:0.3s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="40" r="1" style="animation-delay:0.5s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="60" r="1" style="animation-delay:0.9s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="80" r="1" style="animation-delay:1s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="100" r="1" style="animation-delay:1.2s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="120" r="1" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="140" r="1" style="animation-delay:1.7s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="160" r="1" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="180" r="1" style="animation-delay:1.7s"/>
               </g>
             </g>
           </svg>

@@ -93,6 +93,7 @@ export class VentSimApp {
       lpComp: this.$("lpComp"),
       lpRes: this.$("lpRes"),
       lpSpO2: this.$("lpSpO2"),
+      lpPaO2: this.$("lpPaO2"),
       lpPaCO2: this.$("lpPaCO2"),
     });
     this.readouts = this.lungVisual.readouts;

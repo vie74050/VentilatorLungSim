@@ -48,11 +48,12 @@ export class LungVisual2D {
     this.dom = dom;
     this.readouts = new ReadoutsView(dom);
     this.lastSpo2 = null;
+    this.lastPaO2 = null;
     this.lastPaCO2 = null;
   }
 
   // fractions: object returned by PatientFractions.derive(), merged with
-  // deriveGasFractions() (o2Frac/co2Frac). gas: { spo2, paCO2, shuntFrac }.
+  // deriveGasFractions() (o2Frac/co2Frac). gas: { spO2, paCO2, shuntFrac }.
   update(patient, fractions, gas) {
     const { dom } = this;
     const {
@@ -111,6 +112,7 @@ export class LungVisual2D {
     const o2Circles = dom.o2Circles;
     const co2Circles = dom.co2Circles;
     const openAlvCount = Math.round((1 - gas.shuntFrac) * alvCircles.length);
+    const O2Dot_scaleFactor = 3; // the max size for O2 dot
 
     alvCircles.forEach((c, i) => {
       if (i < openAlvCount) {
@@ -128,27 +130,34 @@ export class LungVisual2D {
       }
     });
 
-    // O2/CO2 exchange dot intensity -- spo2/paCO2 only change once per
+    // O2/CO2 exchange dot intensity -- spO2/paCO2 only change once per
     // breath (GasExchangeModel.update(), at the insp->exp transition), so
     // gate the DOM write the same way the C/R readouts are gated.
     if (
       dom.gasExchangeGroup &&
-      (gas.spo2 !== this.lastSpo2 || gas.paCO2 !== this.lastPaCO2)
+      (gas.spO2 !== this.lastSpO2 || gas.paCO2 !== this.lastPaCO2)
     ) {
+      
+      const dot_scaleFactor = 3; // max size for O2 dot
+      const o2Size = 0.5 + dot_scaleFactor * o2Frac;
+      const co2Size = 0.5 + dot_scaleFactor * co2Frac;
+      dom.gasExchangeGroup.style.setProperty("--o2-size", o2Size.toFixed(2));
+      dom.gasExchangeGroup.style.setProperty("--co2-size", co2Size.toFixed(2));
       dom.gasExchangeGroup.style.setProperty("--o2-intensity", o2Frac.toFixed(2));
       dom.gasExchangeGroup.style.setProperty("--co2-intensity", co2Frac.toFixed(2));
 
       // O2/CO2 exchange dot anim duration. This is purely visual, not physiologic.
       const DUR_MAX = 5,
-        DUR_MIN = 1.0;
-      const o2Dur = DUR_MAX - (DUR_MAX - DUR_MIN) * o2Frac;
+            DUR_MIN = 1.0;
+      const o2Dur = DUR_MAX - (DUR_MAX - DUR_MIN) * o2Frac; //console.log("o2Dur", o2Dur, "o2Frac", o2Frac);
       const co2Dur = DUR_MAX - (DUR_MAX - DUR_MIN) * co2Frac;
-      dom.gasExchangeGroup.style.setProperty("--o2-duration", o2Dur.toFixed(2) + "s");
-      dom.gasExchangeGroup.style.setProperty("--co2-duration", co2Dur.toFixed(2) + "s");
+      //dom.gasExchangeGroup.style.setProperty("--o2-duration", o2Dur.toFixed(2) + "s");
+      //dom.gasExchangeGroup.style.setProperty("--co2-duration", co2Dur.toFixed(2) + "s");
     }
 
-    this.readouts.updateLungPanelReadouts(patient, gas.spo2, gas.paCO2);
-    this.lastSpo2 = gas.spo2;
+    this.readouts.updateLungPanelReadouts(patient, gas.spO2, gas.paO2, gas.paCO2);
+    this.lastSpO2 = gas.spO2;
+    this.lastPaO2 = gas.paO2;
     this.lastPaCO2 = gas.paCO2;
   }
 
