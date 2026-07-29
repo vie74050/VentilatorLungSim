@@ -264,7 +264,7 @@ effectiveCompliance():
 
 These don't affect Paw/Flow/Vol — they're purely for the visual (SVG).
 
-`derivedPatientFractions` convert patient and vent parameters to vars that drive the visualization:
+`derive()` from PatientFractions convert patient and vent parameters to vars that drive the visualization:
 
 ```formula
 LUNGS
@@ -300,6 +300,7 @@ FiO₂ does not appear in `step()`. It feeds a separate gas exchange calculation
 #### 5.2 Calculation
 
 Using GAS EXCHANGE constants for atm pressure, ph...etc.
+> [Reference Source](https://www.ncbi.nlm.nih.gov/books/NBK482268/) NIH Library of Medicine Alveolar Gas Equations
 
 ```formula
 vtL = lastVTe / 1000                         (last breath's exhaled volume, L)
@@ -318,8 +319,8 @@ fio2Frac = settings[currentMode].fio2 / 100
 PAO2 = fio2Frac × (Patm − PH2O) − paCO2/RQ   (Patm=760, PH2O=47, RQ=0.8)
 paO2 = clamp(PAO2 × (1 − shuntFrac), 20, 650)  
 
-spo2 = 100 / (23400/(paO2³ + 150×paO2) + 1)  (Severinghaus approximation)
-spo2 = clamp(spo2, 40, 100)
+spO2 = 100 / (23400/(paO2³ + 150×paO2) + 1)  (Severinghaus approximation)
+spO2 = clamp(spO2, 40, 100)
 ```
 
 #### 5.3 Shunt refractoriness

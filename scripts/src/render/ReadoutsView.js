@@ -21,11 +21,12 @@ export class ReadoutsView {
     dom.vVTe.textContent = breath.lastVTe || "--";
   }
 
-  updateLungPanelReadouts(patient, spo2, paCO2) {
+  updateLungPanelReadouts(patient, spO2, paO2, paCO2) {
     const { dom } = this;
     if (dom.lpComp) dom.lpComp.textContent = patient.compliance;
     if (dom.lpRes) dom.lpRes.textContent = patient.resistance;
-    if (dom.lpSpO2) dom.lpSpO2.textContent = spo2.toFixed(0);
+    if (dom.lpSpO2) dom.lpSpO2.textContent = spO2.toFixed(0);
+    if (dom.lpPaO2) dom.lpPaO2.textContent = paO2.toFixed(0);
     if (dom.lpPaCO2) dom.lpPaCO2.textContent = paCO2.toFixed(0);
   }
 }
