@@ -280,15 +280,17 @@ canvas#scopeCanvas {
    updateLungVisual(). No per-dot JS control, no spawn/despawn. */
 .o2-icon::before {
     content: "\25CF ";
-    font-size: 10px;
+    font-size: 15px;
     color: var(--o2-color);
     font-family: var(--mono);
+    padding-right: 5px;
 }
 .co2-icon::before {
     content: "\25CF ";
-    font-size: 10px;
+    font-size: 15px;
     color: var(--co2-color);
     font-family: var(--mono);
+    padding-right: 5px;
 }
 
 #gasExchange {
