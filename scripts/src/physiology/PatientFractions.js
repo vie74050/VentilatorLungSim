@@ -73,8 +73,8 @@ export class PatientFractions {
     // normal range ~35-45mmHg, 
     // hypercapnia > 45mmHg, 
     // hypocapnia < 35mmHg
-    const CO2_BASELINE = 0.2;
-    const co2Frac = 1 / (1 + Math.exp(-(paCO2 - 40) / 5)) + CO2_BASELINE;    
+    
+    const co2Frac = 1 / (1 + Math.exp(-(paCO2 - 20) / 5));   
     //console.log (co2Frac, "co2Frac", paCO2, "paCO2");
     return { o2Frac, co2Frac };
   }
