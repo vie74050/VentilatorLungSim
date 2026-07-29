@@ -305,11 +305,11 @@
 
         <div class="slider-col-parent">
           <label class="checkbox-lbl">
-            <input type="checkbox" id="chkLeftCollapsed">
+            <input type="checkbox" id="chkLeftCollapsed" onclick="if(this.checked){const el=document.getElementById('chkRightCollapsed'); if(el.checked){el.checked=false; el.dispatchEvent(new Event('change',{bubbles:true}));}}">
             Left lung collapsed
           </label>
           <label class="checkbox-lbl">
-            <input type="checkbox" id="chkRightCollapsed">
+            <input type="checkbox" id="chkRightCollapsed" onclick="if(this.checked){const el=document.getElementById('chkLeftCollapsed'); if(el.checked){el.checked=false; el.dispatchEvent(new Event('change',{bubbles:true}));}}">
             Right lung collapsed
           </label>
         </div>
