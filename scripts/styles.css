@@ -194,7 +194,7 @@ body {
 .scope {
     background: var(--bg-screen);
     border-radius: 8px;
-    flex: 0 0 35%;
+    flex: 0 0 40%;
     min-width: 0;
     padding: 6px 4px 6px 2px;
     position: relative;
@@ -210,7 +210,7 @@ canvas#scopeCanvas {
     background: var(--bg-screen);
     border-radius: 8px;
     flex: 1 1 auto;
-    min-width: 400px;
+    min-width: 50%;
     padding: 8px;
     display: flex;
     flex-direction: column;
@@ -450,6 +450,7 @@ canvas#scopeCanvas {
     gap: 8px;
     align-items: stretch;
     justify-content: center;
+    margin-top: 40px;
 }
 
 .settile {
