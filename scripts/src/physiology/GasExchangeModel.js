@@ -72,12 +72,14 @@ export class GasExchangeModel {
     const rr = lastRRdisplay || 1;
     const VA_Lmin = Math.max(rr * (vtL - GAS.deadSpace), 0.1); // alveolar minute ventilation
     // CO2 is driven by ventilation, NOT FiO2 -- keeping these independent
-    this.paCO2 = (0.863 * GAS.VCO2) / VA_Lmin; // alveolar ventilation equation
+    this.paCO2 = (0.863 * GAS.VCO2) / VA_Lmin; // alveolar ventilation equation for CO2, mmHg
     this.paCO2 = Math.min(Math.max(this.paCO2, 15), 120);
 
     // Alveolar gas equation, then reduce by shunt to get an effective PaO2.
     const fio2Frac = fio2 / 100;
     const PAO2 = fio2Frac * (GAS.Patm - GAS.PH2O) - this.paCO2 / GAS.RQ;
+    
+    // Effective arterial O2 is alveolar O2 reduced by shunt, then clamped to a physiologic range.
     this.paO2 = Math.min(Math.max(PAO2 * (1 - this.shuntFrac), 20), 650);
 
     // Severinghaus approximation of the oxyhemoglobin dissociation curve.
