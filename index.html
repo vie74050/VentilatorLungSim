@@ -42,7 +42,7 @@
         <div class="lungpanel" id="lungPanelWrap">
           <div class="lp-title">PATIENT MODEL</div>
           
-          <div class="lp-readout">
+          <div class="lp-readout debug">
             <div class="lp-readout-row">
               <span>C: <b id="lpComp">50</b> mL/cmH&#8322;O</span>
               <span>R: <b id="lpRes">10</b></span>
@@ -52,8 +52,9 @@
               <span class="pao2-icon">PaO&#8322;: <b id="lpPaO2">100</b> mmHg</span>
               <span class="paco2-icon">PaCO&#8322;: <b id="lpPaCO2">40</b> mmHg</span>
             </div>
-            <br>
-            <div class="lp-readout-row">
+          </div>
+          <div class="lp-readout">
+            <div class="lp-readout-row" title="Size and opacity of dots depict O&#8322; or CO&#8322; levels --for visualization only--">
               <span class="o2-icon">O&#8322;</span>
               <span class="co2-icon">CO&#8322;</span>
             </div>
@@ -249,7 +250,7 @@
           </div>
           <div class="slider-row">
             <div class="top"><label>Tidal volume</label><span class="readout"><span id="rTV">450</span> mL</span></div>
-            <input type="range" id="sTV" min="150" max="700" step="10" value="450">
+            <input type="range" id="sTV" min="230" max="700" step="10" value="450">
           </div>
         </div>
 
