@@ -10,7 +10,7 @@
   "scripts": {
     "lint": "eslint \"scripts/src/**/*.js\" scripts/vent-scripts.js",
     "serve": "serve . -l 5500",
-    "build:d2l": "node tools/build-d2l-index.js"
+    "build:d2l": "node tools/build-d2l.js"
   },
   "devDependencies": {
     "eslint": "^8.57.1",

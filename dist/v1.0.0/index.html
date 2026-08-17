@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BCIT Ventilator Simulator</title>
+<link rel="shortcut icon" href="https://kb.bcit.ca/wp-content/uploads/2018/10/favicon.ico">
+
+<link rel="stylesheet" href="https://vie74050.github.io/VentilatorLungSim/dist/v1.0.0/scripts/styles.css">
+
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    
+    <div class="bcit-logo" aria-label="BCIT logo">
+        <svg class="logo" width="55" viewBox="0 0 95 85" xmlns="http://www.w3.org/2000/svg"><path fill="#FFF200" d="M0 0h84.8v84.8H0z"></path><path fill="#003C71" d="M8.6 56.4V27.2h7.2c6.7 0 9.7 2.2 9.7 7.6 0 3-1.3 5.1-3.8 6.2v.1c3.3 1.2 4.5 3.7 4.5 7 0 6.7-4.3 8.4-10 8.4H8.6v-.1zm7.4-17c2.5 0 4.7-.9 4.7-4.1 0-3.1-2.3-3.7-4.7-3.7h-2.7v7.8H16zm.5 12.7c3.4 0 4.8-1.2 4.8-4.3 0-3.2-1.6-4.5-4.8-4.5h-3.2v8.8h3.2zm30.9-5.2c-.9 6.5-3.6 9.9-8.9 9.9-7 0-9.3-5.7-9.3-15.1 0-8.4 2.4-14.8 9.3-14.8 5.6 0 7.8 3.5 8.6 9.4l-4.5.4c-.6-3.7-1.9-5.5-4-5.5-3 0-4.5 3.1-4.5 10.5 0 8.1 1.3 10.8 4.5 10.8 2.3 0 3.7-2.1 4.3-6.1l4.5.5zm4.1 9.5V27.2h4.8v29.2h-4.8zm14.8 0V31.6h-6v-4.4h16.8v4.4h-6v24.8h-4.8z"></path><path fill="#FFF200" d="M89.426 3.253c.462 0 .84-.13.84-.625 0-.478-.408-.566-.826-.566h-.64v1.19h.626zm.885 2.15l-.77-1.554H88.8v1.554h-.71V1.454h1.304c.973 0 1.572.333 1.572 1.16 0 .48-.248.858-.742 1.046l.899 1.743h-.812zM92.126 3.5c0-1.584-.99-2.86-2.716-2.86-1.743 0-2.744 1.276-2.744 2.86 0 1.627 1 2.862 2.744 2.862 1.727 0 2.716-1.235 2.716-2.862zM86 3.5C86 1.54 87.288 0 89.41 0c2.12 0 3.398 1.54 3.398 3.5 0 1.916-1.278 3.5-3.398 3.5C87.288 7 86 5.416 86 3.5z"></path></svg>
+    </div>
+    <h1 class="title">BCIT Ventilator Lung Simulator</h1>
+    <div class="sub"></div>
+    
+  </div>
+
+  <!-- ================= USER UI ================= -->
+  <div class="device">
+
+    <div class="screen-col">
+      
+      <div class="modeselect">
+        <button class="modebtn active" data-mode="VC">Volume Control</button>
+        <button class="modebtn" data-mode="PC">Pressure Control</button>
+        <button class="modebtn" data-mode="PS">PSV</button>
+      </div>
+
+      <div class="note" id="modeNote">
+        <b>Volume Control:</b> you set tidal volume + rate; the vent delivers a fixed flow pattern and <b>pressure is the result</b> — watch Ppeak rise as compliance drops or resistance climbs.
+      </div>
+
+      <div class="screen-main">
+
+        <div class="lungpanel" id="lungPanelWrap">
+          <div class="lp-title">PATIENT MODEL</div>
+          
+          <div class="lp-readout debug">
+            <div class="lp-readout-row">
+              <span>C: <b id="lpComp">50</b> mL/cmH&#8322;O</span>
+              <span>R: <b id="lpRes">10</b></span>
+            </div>
+            <div class="lp-readout-row">
+              <span class="spo2-icon">SpO&#8322;: <b id="lpSpO2">98</b>%</span>
+              <span class="pao2-icon">PaO&#8322;: <b id="lpPaO2">100</b> mmHg</span>
+              <span class="paco2-icon">PaCO&#8322;: <b id="lpPaCO2">40</b> mmHg</span>
+            </div>
+          </div>
+          <div class="lp-readout">
+            <div class="lp-readout-row" title="Size and opacity of dots depict O&#8322; or CO&#8322; levels --for visualization only--">
+              <span class="o2-icon">O&#8322;</span>
+              <span class="co2-icon">CO&#8322;</span>
+            </div>
+          </div>
+
+          <!-- Anatomy visualizer (2D) -->
+          <svg id="lungSvg" 
+            width="400"
+            height="300"
+            viewBox="0 0 220 400" 
+            xmlns="http://www.w3.org/2000/svg">
+
+            <g id="airwayGroup" transform="translate(0, 100)">
+              <!-- trachea -->
+              <g id="trachea">
+                <rect x="103" y="10" width="14" height="38" rx="4" fill="#e7c9b8"/>
+                <line x1="103" y1="15" x2="117" y2="15" stroke="#b89a89" stroke-width="1.2"/>
+                <line x1="103" y1="22" x2="117" y2="22" stroke="#b89a89" stroke-width="1.2"/>
+                <line x1="103" y1="29" x2="117" y2="29" stroke="#b89a89" stroke-width="1.2"/>
+                <line x1="103" y1="36" x2="117" y2="36" stroke="#b89a89" stroke-width="1.2"/>
+                <line x1="103" y1="43" x2="117" y2="43" stroke="#b89a89" stroke-width="1.2"/>
+              </g>
+
+              <!-- bronchi -->
+              <path id="bronchR" d="M108,46 C95,58 78,64 64,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
+              <path id="bronchL" d="M112,46 C126,58 144,64 158,82" fill="none" stroke="#c98a78" stroke-width="6" stroke-linecap="round"/>
+
+              <!-- lungs (these scale/breathe) -->
+              <g id="lungR" style="transform-origin:100px 80px;">
+                <image
+                  id="lungRimg"
+                  href="https://vie74050.github.io/VentilatorLungSim/dist/v1.0.0/scripts/assets/rightLung.svg"
+                  x="-10"
+                  y="50"
+                  width="100"
+                  height="180"
+                  preserveAspectRatio="none"
+              />
+                              
+              </g>
+
+              <g id="lungL" style="transform-origin:120px 80px;">
+                <image
+                  id="lungLimg"
+                  href="https://vie74050.github.io/VentilatorLungSim/dist/v1.0.0/scripts/assets/leftLung.svg"
+                  x="130"
+                  y="50"
+                  width="100"
+                  height="180"
+                  preserveAspectRatio="none"    
+                />
+                
+              </g>
+            </g>
+                       
+            
+          </svg>
+
+          <svg id="alveoliSvg"
+            width="400"
+            height="300"
+            viewBox="0 0 300 200"
+            xmlns="http://www.w3.org/2000/svg">
+            <!-- alveoli inset panel -->
+            <g id="alveoliInset">
+              
+              <text x="0" y="0" font-family="IBM Plex Mono, monospace" font-size="7" fill="#8c9094" letter-spacing="0.3">ALVEOLI</text>
+
+              <path id="capillaryPath" d="M5,10 L5,210"
+                    stroke="#c98a78" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+              <g id="alvGroup" transform="translate(10, 20)">
+                <circle class="alv" cy="0" cx="0" r="3"/>
+                <circle class="alv" cy="20" cx="0" r="3"/>
+                <circle class="alv" cy="40" cx="0" r="3"/>
+                <circle class="alv" cy="60" cx="0" r="3"/>
+                <circle class="alv" cy="80" cx="0" r="3"/>
+                <circle class="alv" cy="100" cx="0" r="3"/>
+                <circle class="alv" cy="120" cx="0" r="3"/>
+                <circle class="alv" cy="140" cx="0" r="3"/>
+                <circle class="alv" cy="160" cx="0" r="3"/>
+                <circle class="alv" cy="180" cx="0" r="3"/>
+              </g>
+
+              <!-- O2/CO2 exchange cues: fixed dot count, CSS-looped, intensity
+                   driven by --o2-intensity/--co2-intensity (set once per
+                   breath in updateLungVisual() from spO2/paCO2). O2 dots
+                   start at an alveolus and drift down to the capillary line;
+                   CO2 dots start at the capillary line and drift up into the
+                   alveolus -- reuses the existing capillary path as the
+                   exchange boundary rather than inventing new geometry. -->
+              <g id="gasExchange" transform="translate(10, 20)">
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="0" r="1" style="animation-delay:0s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="20" r="1" style="animation-delay:0.3s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="40" r="1" style="animation-delay:0.5s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="60" r="1" style="animation-delay:0.9s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="80" r="1" style="animation-delay:1s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="100" r="1" style="animation-delay:1.2s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="120" r="1" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="140" r="1" style="animation-delay:1.7s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="160" r="1" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-o2" cx="0" cy="180" r="1" style="animation-delay:1.7s"/>
+
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="0" r="1" style="animation-delay:0s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="20" r="1" style="animation-delay:0.3s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="40" r="1" style="animation-delay:0.5s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="60" r="1" style="animation-delay:0.9s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="80" r="1" style="animation-delay:1s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="100" r="1" style="animation-delay:1.2s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="120" r="1" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="140" r="1" style="animation-delay:1.7s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="160" r="1" style="animation-delay:1.4s"/>
+                <circle class="gas-dot gas-dot-co2" cx="0" cy="180" r="1" style="animation-delay:1.7s"/>
+              </g>
+            </g>
+          </svg>
+
+        </div>
+
+        <div class="scope">
+          <canvas id="scopeCanvas"></canvas>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--amber)"></span>Paw (airway pressure)</span>
+            <span><span class="swatch" style="background:var(--green)"></span>Flow</span>
+            <span><span class="swatch" style="background:var(--cyan)"></span>Volume</span>
+          </div>
+          <div class="settingsbar" id="settingsBar">
+            <!-- populated by JS depending on mode -->
+          </div>
+        </div>
+        
+        <div class="vars">
+          <div class="vtile amber">
+            <div class="range">40</div>
+            <div class="lbl">Ppeak</div>
+            <div class="val" id="vPpeak">0</div>
+            <div class="unit">cmH&#8322;O</div>
+          </div>
+          <div class="vtile green">
+            <div class="range">30<br><span class="dim">5</span></div>
+            <div class="lbl">RR</div>
+            <div class="val" id="vRR">0</div>
+            <div class="unit">b/min</div>
+          </div>
+          <div class="vtile cyan">
+            <div class="range">40.0<br><span class="dim">5.0</span></div>
+            <div class="lbl">MV&#7497;</div>
+            <div class="val val--sm" id="vMV">0.0</div>
+            <div class="unit">l/min</div>
+          </div>
+          <div class="vtile vtile--tight">
+            <div class="lbl">VTi</div>
+            <div class="vti-mini" id="vVTi">0</div>
+          </div>
+          <div class="vtile cyan">
+            <div class="lbl">VTe</div>
+            <div class="val val--sm" id="vVTe">0</div>
+            <div class="unit">ml</div>
+          </div>
+        </div>
+ 
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= CONTROL DECK ================= -->
+  <div class="deck">
+
+    <div class="deck-tabs modeselect">
+      <button class="deck-tab active" data-tab="ventilator" type="button">Ventilator Controls</button>
+      <button class="deck-tab" data-tab="lungs" type="button">Lungs &amp; Airway</button>
+      <button class="deck-tab" disabled="true" data-tab="heart" type="button">Heart & End Organ</button>
+    </div>
+
+    <div class="deck-grid">
+
+      <!-- VENTILATOR SETTINGS CARD -->
+      <div class="card" data-tab-panel="ventilator">
+        <h3>Ventilator controls</h3>
+        <div id="vcGroup" class="modegroup slider-col-parent">
+          <div class="slider-row">
+            <div class="top"><label>FiO&#8322;</label><span class="readout"><span id="rFiO2">40</span>%</span></div>
+            <input type="range" id="sFiO2" min="21" max="100" step="1" value="40">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>PEEP</label><span class="readout"><span id="rPEEPvc">5.0</span> cmH&#8322;O</span></div>
+            <input type="range" id="sPEEPvc" min="5" max="20" step="0.5" value="5">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>Respiratory rate</label><span class="readout"><span id="rRRvc">16</span> br/min</span></div>
+            <input type="range" id="sRRvc" min="5" max="35" step="1" value="16">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>Tidal volume</label><span class="readout"><span id="rTV">450</span> mL</span></div>
+            <input type="range" id="sTV" min="230" max="700" step="10" value="450">
+          </div>
+        </div>
+
+        <div id="pcGroup" class="modegroup slider-col-parent" style="display:none;">
+          <div class="slider-row">
+            <div class="top"><label>FiO&#8322;</label><span class="readout"><span id="rFiO2pc">40</span>%</span></div>
+            <input type="range" id="sFiO2pc" min="21" max="100" step="1" value="40">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>PEEP</label><span class="readout"><span id="rPEEPpc">8.0</span> cmH&#8322;O</span></div>
+            <input type="range" id="sPEEPpc" min="5" max="20" step="0.5" value="8">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>Respiratory rate</label><span class="readout"><span id="rRRpc">18</span> br/min</span></div>
+            <input type="range" id="sRRpc" min="5" max="35" step="1" value="18">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>Delta PEEP</label><span class="readout"><span id="rPC">15</span> cmH&#8322;O</span></div>
+            <input type="range" id="sPC" min="5" max="35" step="1" value="15">
+          </div>
+        </div>
+
+        <div id="psGroup" class="modegroup slider-col-parent" style="display:none;">
+          <div class="slider-row">
+            <div class="top"><label>FiO&#8322;</label><span class="readout"><span id="rFiO2ps">30</span>%</span></div>
+            <input type="range" id="sFiO2ps" min="21" max="100" step="1" value="30">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>PEEP</label><span class="readout"><span id="rPEEPps">5.0</span> cmH&#8322;O</span></div>
+            <input type="range" id="sPEEPps" min="5" max="20" step="0.5" value="5">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>Delta PEEP</label><span class="readout"><span id="rPS">5</span> cmH&#8322;O</span></div>
+            <input type="range" id="sPS" min="0" max="30" step="1" value="5">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>Backup RR</label><span class="readout"><span id="rBackupRR">10</span> br/min</span></div>
+            <input type="range" id="sBackupRR" min="4" max="30" step="1" value="10">
+          </div>
+          <div class="slider-row">
+            <div class="top"><label>Backup Delta PEEP</label><span class="readout"><span id="rBackupPC">15</span> cmH&#8322;O</span></div>
+            <input type="range" id="sBackupPC" min="5" max="35" step="1" value="15">
+          </div>
+        </div>
+      </div>
+
+      <!-- PATIENT CARD -->
+      <div class="card setup-ui" data-tab-panel="lungs" style="display:none;">
+        <h3>Lungs & Respiratory mechanics</h3>
+
+        <div class="slider-col-parent">
+          <div class="slider-row">
+            <div class="top"><label>Compliance (C)</label><span class="readout"><span id="rComp">50</span> mL/cmH&#8322;O</span></div>
+            <input type="range" class="patient" id="sComp" min="10" max="100" step="1" value="50">
+            <div class="ticks"><span>10 — stiff (ARDS/fibrosis)</span><span>100 — normal/emphysema</span></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="top"><label>Airway resistance (R)</label><span class="readout"><span id="rRes">10</span> cmH&#8322;O/L/s</span></div>
+            <input type="range" class="patient" id="sRes" min="4" max="40" step="1" value="10">
+            <div class="ticks"><span>4 — normal</span><span>40 — bronchospasm/secretions</span></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="top"><label>Patient respiratory effort</label><span class="readout"><span id="rEffort">0 (none)</span></span></div>
+            <input type="range" class="patient" id="sEffort" min="0" max="10" step="1" value="0">
+            <div class="ticks"><span>none — fully passive</span><span>strong — vigorous drive</span></div>
+          </div>
+        </div>
+        
+        <div class="divider"></div>
+
+        <div class="slider-col-parent">
+          <label class="checkbox-lbl">
+            <input type="checkbox" id="chkLeftCollapsed" onclick="if(this.checked){const el=document.getElementById('chkRightCollapsed'); if(el.checked){el.checked=false; el.dispatchEvent(new Event('change',{bubbles:true}));}}">
+            Left lung collapsed
+          </label>
+          <label class="checkbox-lbl">
+            <input type="checkbox" id="chkRightCollapsed" onclick="if(this.checked){const el=document.getElementById('chkLeftCollapsed'); if(el.checked){el.checked=false; el.dispatchEvent(new Event('change',{bubbles:true}));}}">
+            Right lung collapsed
+          </label>
+        </div>
+       
+        <div class="divider"></div>
+
+        <div class="preset-row">
+          <select id="presetSelect" class="preset-select">
+            <option value="" selected disabled>Quick presets…</option>
+            <option value="normal">Normal lungs</option>
+            <option value="ards">ARDS (low C, mod R)</option>
+            <option value="copd">COPD (high R)</option>
+            <option value="spontaneous">Spontaneous effort</option>
+          </select>
+        </div>
+
+      </div>
+    
+      <div class="card setup-ui" data-tab-panel="heart" style="display:none;">
+        <h3>Heart mechanics</h3>
+
+        <div class="slider-col-parent">
+          <div class="slider-row">
+            <div class="top"><label>Preload</label><span class="readout"><span id="rPreload">50</span> %</span></div>
+            <input type="range" class="patient" id="sPreload" min="0" max="100" step="1" value="50">
+            <div class="ticks"><span>0 — low</span><span>100 — high</span></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="top"><label>Afterload</label><span class="readout"><span id="rAfterload">10</span> %</span></div>
+            <input type="range" class="patient" id="sAfterload" min="0" max="100" step="1" value="10">
+            <div class="ticks"><span>0 — low</span><span>100 — high</span></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="top"><label>Contractility</label><span class="readout"><span id="rContractility">50</span>%</span></div>
+            <input type="range" class="patient" id="sContractility" min="0" max="100" step="1" value="50">
+            <div class="ticks"><span>none — fully passive</span><span>strong — vigorous drive</span></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3>End Organ mechanics</h3>
+
+        <div class="slider-col-parent">
+          <div class="slider-row">
+            <div class="top"><label>Brain function</label><span class="readout"><span id="rBrain">50</span>%</span></div>
+            <input type="range" class="patient" id="sBrain" min="0" max="100" step="1" value="50">
+            <div class="ticks"><span>0 — failure</span><span>100 — normal</span></div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="deck-actions setup-ui">
+      <button id="btnSaveSettings" class="deck-action-btn" type="button">Save</button>
+      <button id="btnLoadSettings" class="deck-action-btn" type="button">Load</button>
+      <input type="file" id="loadFileInput" accept="application/json,.json" style="display:none;">
+    </div>
+  </div>
+
+  <footer>For educational use only - 🄯 BCIT Share with attribution, no modifications.</footer>
+</div>
+
+<script src="https://vie74050.github.io/VentilatorLungSim/dist/v1.0.0/scripts/update-version.js"></script>
+<script type="module" src="https://vie74050.github.io/VentilatorLungSim/dist/v1.0.0/scripts/vent-scripts.js"></script>
+
+</body>
+</html>
