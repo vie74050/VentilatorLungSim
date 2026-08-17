@@ -34,34 +34,47 @@ npm run lint    # lints scripts/src/**/*.js and scripts/vent-scripts.js, must re
 npm run serve   # serves the project at http://localhost:5500 -- local server for local testing, 
 ```
 
-**There is no build/bundle step for the simulator itself, and none is planned.** `package.json` exists only to pin dev tooling versions -- `scripts/` is still plain ES6 modules loaded directly by the browser via `<script type="module" src="scripts/vent-scripts.js">`, no bundler.
+**There is no build/bundle step for the simulator itself** `package.json` exists only to pin dev tooling versions -- `scripts/` is still plain ES6 modules loaded directly by the browser via `<script type="module" src="scripts/vent-scripts.js">`, no bundler.
 
-### Hosting split: GitHub Pages (scripts) + D2L (index.html only)
+### Local and GitHub Testing
 
-Only `index.html` and a course's `settings.json` get uploaded to D2L. Everything under `scripts/` is served from GitHub Pages instead (`https://vie74050.github.io/VentilatorLungSim/scripts/...`), so updating the simulator for every course is one push, not one re-upload per course.
+`index.html` in the repo keeps plain relative paths (`scripts/vent-scripts.js`, etc.) on purpose -- that's what makes `npm run serve` work for local testing (uncommitted changes included), and it also means the live GitHub Pages URL itself is a legitimate same-origin test environment.
 
-`index.html` in the repo keeps plain relative paths (`scripts/vent-scripts.js`, etc.) on purpose -- that's what makes `npm run serve` work for local testing (uncommitted changes included), and it also means the live GitHub Pages URL itself is a legitimate same-origin test environment, no rewriting needed, before you even think about D2L.
+### Deployment to D2L
 
-The version of `index.html` that actually goes to D2L needs those relative paths rewritten to the absolute GitHub Pages URL. That rewrite is a **deploy step, not a build step** -- it runs only when preparing a D2L upload, never as part of loading the page:
+Handled by `tools/build-d2l.js`. Set the `DEFAULT_BASE` to targer prod absolute path. Default will be `/dist/` folder for now.
+
+Hosting split: GitHub Pages (scripts) + D2L (index.html only)
+
+Only `index.html` and a course's `settings.json` get uploaded to D2L.
+Everything under `scripts/` is served from GitHub Pages, so updating the simulator for every course is one push, not one re-upload per course.
+
+The version of `index.html` that actually goes to D2L needs to use relative paths rewritten to the absolute GitHub Pages URL. Run:
 
 ```bash
 npm run build:d2l
-# -> writes dist/index.html with scripts/... rewritten to
-#    https://vie74050.github.io/VentilatorLungSim/scripts/...
-# Upload dist/index.html (+ that course's settings.json) to D2L.
-# Do not upload the scripts/ folder to D2L.
 ```
 
-For development, create a release version for testing, otherwise this would be updating live dependencies.
-e.g. add version lock to d2l builds:
+Writes to dist/
+
+- index.html with src URLs pointing to `/dist/`  gh-pages
+- packages `scripts/` to `/dist/scripts`
+- Only upload `dist/index.html` (+ settings.json) to D2L. **NB** course settings can also be made within LH, in the same folder as the `index.html` -- this file determiens the initial parameters for all settings (vent and patient)
+- Do not upload the `scripts/` folder to D2L.
+
+#### Dist Version
+
+Default version is `/1.0.0/`
+
+For future versions, if divereged from initial, you can create alternate versions by passing `--v` parameter
+
+e.g. to create a version that includes organs, but not change original:
 
 ```bash
-node tools/build-d2l-index.js --base https://cdn.jsdelivr.net/gh/vie74050/VentilatorLungSim@v1.0.0/scripts
+npm run build:d2l -- --v 1.0.1
 ```
 
-`dist/` is generated and gitignored -- regenerate it with `npm run build:d2l` whenever `index.html` or the target base URL changes, rather than hand-editing or committing it.
-
-Intended endpoint will be an HTML page that can be deployed to D2L alonge with settings.json for each case.
+These will create the different subfolder in `/dist/`.
 
 ---
 
