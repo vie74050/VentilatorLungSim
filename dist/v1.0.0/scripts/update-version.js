@@ -1,0 +1,1 @@
+(function(){async function t(){try{const e=await fetch("version-info.json");if(!e.ok)return;const n=await e.json(),o=document.querySelector(".sub");o&&(o.textContent=`v${n.version} ${n.date}`)}catch(e){console.error("Version update failed",e)}}t()})();

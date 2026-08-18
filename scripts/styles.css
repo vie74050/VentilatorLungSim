@@ -194,7 +194,7 @@ body {
 .scope {
     background: var(--bg-screen);
     border-radius: 8px;
-    flex: 0 0 35%;
+    flex: 0 0 40%;
     min-width: 0;
     padding: 6px 4px 6px 2px;
     position: relative;
@@ -210,7 +210,7 @@ canvas#scopeCanvas {
     background: var(--bg-screen);
     border-radius: 8px;
     flex: 1 1 auto;
-    min-width: 400px;
+    min-width: 50%;
     padding: 8px;
     display: flex;
     flex-direction: column;
@@ -221,8 +221,8 @@ canvas#scopeCanvas {
 .lungpanel svg#lungSvg {
     position: absolute;
     inset: 8px;
-    top: 28px; /* leave room for .lp-title above */
-    bottom: 28px; /* leave room for .lp-readout below */
+    top: 35px; /* leave room for .lp-title above */
+    bottom: 10px; /* leave room for .lp-readout below */
 }
 
 .lungpanel .lp-title {
@@ -246,7 +246,15 @@ canvas#scopeCanvas {
     font-family: var(--mono);
     font-size: 9.5px;
     color: var(--text-faint);
-    pointer-events: none;
+    cursor: default;
+}
+.lungpanel .lp-readout.debug {
+    height: 0px; /* for dev test only */
+    overflow: hidden;
+}
+.lungpanel .lp-readout.debug:focus {
+    height: auto; /* for dev test only, control in console */
+    overflow: visible;
 }
 
 .lungpanel .lp-readout-row {
@@ -450,6 +458,7 @@ canvas#scopeCanvas {
     gap: 8px;
     align-items: stretch;
     justify-content: center;
+    margin-top: 40px;
 }
 
 .settile {

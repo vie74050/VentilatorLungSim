@@ -16,5 +16,11 @@
     "prefer-const": "warn",
     "eqeqeq": ["warn", "smart"],
     "no-console": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["tools/**/*.js"],
+      "env": { "node": true, "browser": false }
+    }
+  ]
 }

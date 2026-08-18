@@ -18,18 +18,23 @@ export class PatientFractions {
 
     const clampedC = Math.min(Math.max(C, compMin), compMax);
     const peepFrac = peep / 20;    
-    // peepFrac = PEEP normalized to 0-1, PEEP = 5-20cmH2O -> 0.25-1
-    // fillFrac 0.25 - 1
-    const fillFrac = 0.5 * peepFrac + 0.5 * Math.max(0, Math.min(1, breath.Vol / nominalMaxL));
-    const expGain =
-      1 + ((clampedC - compMin) / (compMax - compMin)) * 0.6; // 1...1.6
+    
+    // fillFrac 0-1 is the fraction of the lung filled with air, normalized to a nominal maximum volume of 800 mL. It is collapse-aware: if the lung is collapsed, fillFrac = 0.
+    const fillFrac = Math.max(0, Math.min(1, breath.Vol / nominalMaxL));
+    const expGain = 1 + (clampedC - compMin) / (compMax - compMin);
+
     const stiffFrac = Math.max(
       0,
       Math.min(1, (compMax - C) / (compMax - compMin)),
     );
     const rFrac = Math.max(0, Math.min(1, (R - resMin) / (resMax - resMin)));
 
-    const alvScale = 1 + fillFrac * 2 * expGain;
+    // peepFrac 0.25-1
+    // fillFrac 0-1
+    // expGain 1-2
+    // alvScale 1-4, used to scale alveoli circles in LungVisual2D
+    const alvScale = 1 + peepFrac + fillFrac * expGain;
+    
     const overDist = breath.Paw > 30 && fillFrac > 0.6;
 
     // Per-side lung inflation fraction, already collapse-aware.

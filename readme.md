@@ -34,38 +34,51 @@ npm run lint    # lints scripts/src/**/*.js and scripts/vent-scripts.js, must re
 npm run serve   # serves the project at http://localhost:5500 -- local server for local testing, 
 ```
 
-**There is no build/bundle step for the simulator itself, and none is planned.** `package.json` exists only to pin dev tooling versions -- `scripts/` is still plain ES6 modules loaded directly by the browser via `<script type="module" src="scripts/vent-scripts.js">`, no bundler.
+**There is no build/bundle step for the simulator itself** `package.json` exists only to pin dev tooling versions -- `scripts/` is still plain ES6 modules loaded directly by the browser via `<script type="module" src="scripts/vent-scripts.js">`, no bundler.
 
-### Hosting split: GitHub Pages (scripts) + D2L (index.html only)
+### Local and GitHub Testing
 
-Only `index.html` and a course's `settings.json` get uploaded to D2L. Everything under `scripts/` is served from GitHub Pages instead (`https://vie74050.github.io/VentilatorLungSim/scripts/...`), so updating the simulator for every course is one push, not one re-upload per course.
+`index.html` in the repo keeps plain relative paths (`scripts/vent-scripts.js`, etc.) on purpose -- that's what makes `npm run serve` work for local testing (uncommitted changes included), and it also means the live GitHub Pages URL itself is a legitimate same-origin test environment.
 
-`index.html` in the repo keeps plain relative paths (`scripts/vent-scripts.js`, etc.) on purpose -- that's what makes `npm run serve` work for local testing (uncommitted changes included), and it also means the live GitHub Pages URL itself is a legitimate same-origin test environment, no rewriting needed, before you even think about D2L.
+### Deployment to D2L
 
-The version of `index.html` that actually goes to D2L needs those relative paths rewritten to the absolute GitHub Pages URL. That rewrite is a **deploy step, not a build step** -- it runs only when preparing a D2L upload, never as part of loading the page:
+Handled by `tools/build-d2l.js`. Set the `DEFAULT_BASE` to targer prod absolute path. Default will be `/dist/` folder for now.
+
+Hosting split: GitHub Pages (scripts) + D2L (index.html only)
+
+Only `index.html` and a course's `settings.json` get uploaded to D2L.
+Everything under `scripts/` is served from GitHub Pages, so updating the simulator for every course is one push, not one re-upload per course.
+
+The version of `index.html` that actually goes to D2L needs to use relative paths rewritten to the absolute GitHub Pages URL. Run:
 
 ```bash
 npm run build:d2l
-# -> writes dist/index.html with scripts/... rewritten to
-#    https://vie74050.github.io/VentilatorLungSim/scripts/...
-# Upload dist/index.html (+ that course's settings.json) to D2L.
-# Do not upload the scripts/ folder to D2L.
 ```
 
-For development, create a release version for testing, otherwise this would be updating live dependencies.
-e.g. add version lock to d2l builds:
+Writes to dist/
+
+- index.html with src URLs pointing to `/dist/`  gh-pages
+- packages `scripts/` to `/dist/scripts`
+- Only upload `dist/index.html` (+ settings.json) to D2L. **NB** course settings can also be made within LH, in the same folder as the `index.html` -- this file determiens the initial parameters for all settings (vent and patient)
+- Do not upload the `scripts/` folder to D2L.
+
+#### Dist Version
+
+Default version is `/1.0.0/`
+
+For future versions, if divereged from initial, you can create alternate versions by passing `--v` parameter
+
+e.g. to create a version that includes organs, but not change original:
 
 ```bash
-node tools/build-d2l-index.js --base https://cdn.jsdelivr.net/gh/vie74050/VentilatorLungSim@v1.0.0/scripts
+npm run build:d2l -- --v 1.0.1
 ```
 
-`dist/` is generated and gitignored -- regenerate it with `npm run build:d2l` whenever `index.html` or the target base URL changes, rather than hand-editing or committing it.
-
-Intended endpoint will be an HTML page that can be deployed to D2L alonge with settings.json for each case.
+These will create the different subfolder in `/dist/`.
 
 ---
 
-## Physiologic Simulation Overview
+# Physiologic Simulation Overview
 
 The "patient" is modeled as one elastic balloon (a **single-compartment lung model**), governed by one equation used everywhere in `step()`:
 
@@ -88,11 +101,13 @@ Paw = PEEP + Vol/Compliance + Resistance × Flow
 
 Below documents the different manipulation of this under each **Ventilator Mode**, and how the visualizations are driven.
 
-### 1. Ventilator settings — Volume Control (VC) mode
+## 1. Ventilator Mode Settings
+
+### 1.1. Volume Control (VC) mode
 
 | Control | Slider range | Variable | Directly affects |
 | --- | --- | --- | --- |
-| Tidal volume | 150–700 mL | `settings.VC.tv` | Target inspiratory volume |
+| Tidal volume | 230–700 mL | `settings.VC.tv` | Target inspiratory volume |
 | Respiratory rate | 5–35 br/min | `settings.VC.rr` | Cycle timing |
 | PEEP | 5-20 cmH₂O | `settings.VC.peep` | Baseline pressure |
 | FiO₂ | 21–100% | `settings.VC.fio2` | SpO₂/PaO₂ only (§5) |
@@ -128,7 +143,7 @@ Paw = PEEP + Vol/C
 
 ---
 
-### 2. Ventilator settings — Pressure Control (PC) mode
+### 1.2. Pressure Control (PC) mode
 
 | Control | Slider range | Variable | Directly affects |
 | --- | --- | --- | --- |
@@ -160,7 +175,7 @@ CHECK: expect decrease compliance or increased resistance makes **VTe fall** in 
 
 ---
 
-### 3. Ventilator settings — PS/CPAP mode
+### 1.3 PS/CPAP mode
 
 | Control | Slider range | Variable | Directly affects |
 | --- | --- | --- | --- |
@@ -204,7 +219,7 @@ trigDip = −0.3 × effort × sin(π × progressThroughWindow)
 Paw = PEEP + Vol/C + trigDip
 ```
 
-#### 3.1 Backup pressure target
+#### 1.3.1 Backup pressure target
 
 Apnea backup breaths use `backupPC`, not `PS`. `PS` is an assist pressure on top of the patient's own effort; a backup breath has zero patient effort, so it needs a full pressure-controlled target to move adequate volume. Defaults: PS = 5, backupPC = 15.
 
@@ -215,7 +230,7 @@ Effort dropping to 0 changes two things simultaneously:
 
 ---
 
-### 4. Patient mechanics controls
+## 2. Patient mechanics controls
 
 | Control | Slider range | Variable | Physiologically represents |
 | --- | --- | --- | --- |
@@ -225,7 +240,7 @@ Effort dropping to 0 changes two things simultaneously:
 | Left lung collapsed | checkbox | `patient.leftCollapsed` | Pneumothorax / atelectasis / mainstem intubation of the *right* bronchus |
 | Right lung collapsed | checkbox | `patient.rightCollapsed` | Same, opposite side |
 
-#### 4.1 Compliance and resistance
+### 2.1 Compliance and resistance
 
 One equation, shared by all modes:
 
@@ -245,7 +260,7 @@ Flow(t) = −(expStartVol/τ) × e^(−t/τ)
 
 Larger τ (high R, high C) → slower decay → longer exhalation.
 
-#### 4.2 Collapsed lung — effective compliance
+#### 2.2 Collapsed lung — effective compliance
 
 Changes which compliance value flows into the equations above:
 
@@ -260,7 +275,7 @@ effectiveCompliance():
 
 55/45 split reflects the right lung's larger normal volume. This value feeds `Paw = PEEP + Vol/C + R×Flow` directly — Ppeak rises in VC, VTe falls in PC/PS. No separate collapsed-lung branch exists; it's mediated entirely through this substitution.
 
-#### 4.3 Anatomy Visualization Variables
+#### 2.3 Anatomy Visualization Variables
 
 These don't affect Paw/Flow/Vol — they're purely for the visual (SVG).
 
@@ -285,11 +300,11 @@ bronchioleScale = 1 − rFrac × 0.53
 
 These are then used in `updateLungVisual`.
 
-### 5. FiO₂ and gas exchange (SpO₂ / PaCO₂)
+### 3. FiO₂ and gas exchange (SpO₂ / PaCO₂)
 
 FiO₂ does not appear in `step()`. It feeds a separate gas exchange calculation, run once per breath at the insp→exp transition.
 
-#### 5.1 Dependencies
+#### 3.1 Dependencies
 
 | Signal | Driven by |
 | --- | --- |
@@ -297,10 +312,13 @@ FiO₂ does not appear in `step()`. It feeds a separate gas exchange calculation
 | PaCO₂ | Alveolar minute ventilation (rate × volume) |
 | Shunt fraction | Compliance, resistance, collapsed-lung state |
 
-#### 5.2 Calculation
+#### 3.2 Calculation
 
 Using GAS EXCHANGE constants for atm pressure, ph...etc.
-> [Reference Source](https://www.ncbi.nlm.nih.gov/books/NBK482268/) NIH Library of Medicine Alveolar Gas Equations
+
+*Reference Sources*  
+> [NIH Library of Medicine Alveolar Gas Equations](https://www.ncbi.nlm.nih.gov/books/NBK482268/)  
+> [Alveolar centiation equation for CO2](https://www.cambridge.org/core/books/abs/essential-equations-for-anaesthesia/alveolar-ventilation-equation/0F5549ADBDFEF58C28B70A3917A76334)
 
 ```formula
 vtL = lastVTe / 1000                         (last breath's exhaled volume, L)
@@ -323,17 +341,17 @@ spO2 = 100 / (23400/(paO2³ + 150×paO2) + 1)  (Severinghaus approximation)
 spO2 = clamp(spO2, 40, 100)
 ```
 
-#### 5.3 Shunt refractoriness
+#### 3.3 Shunt refractoriness
 
 `shuntFrac` multiplies `PAO2` before it becomes `paO2`. In high-shunt cases (bad compliance, collapsed lung), raising FiO₂ produces a diminishing SpO₂ return — this follows directly from the formula, not a special case.
 
-#### 5.4 Update cadence
+#### 3.4 Update cadence
 
 Gas exchange values are recalculated **once per completed breath** (at the insp→exp transition), not every 20ms tick like Paw/Flow/Vol. Real pulse oximetry has its own lag too, so per-breath updates are a reasonable approximation and avoid adding this calculation to the 50Hz hot path.
 
 ---
 
-### 6. Quick-reference: control → outcome matrix
+### Quick-reference: control → outcome matrix
 
 | If you increase... | Ppeak (VC) | VTe (PC/PS) | Exhalation time | SpO₂ | PaCO₂ |
 | --- | --- | --- | --- | --- | --- |
