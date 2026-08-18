@@ -1,5 +1,1 @@
-import { VentSimApp } from "./src/VentSimApp.js";
-
-// Entry point. Load via <script type="module" src="vent-scripts.js"></script>
-const app = new VentSimApp(document, window);
-app.init();
+import{VentSimApp as n}from"./src/VentSimApp.js";const i=new n(document,window);i.init();

@@ -2,17 +2,18 @@
   "name": "bcit-ventilator-simulator",
   "version": "1.0.0",
   "private": true,
-  "description": "BCIT Ventilator Simulator -- client-side mechanical ventilation training tool. No build step: this package.json exists only for local dev tooling (lint + static server).",
+  "description": "BCIT Ventilator Simulator -- client-side mechanical ventilation training tool. No build step for local dev (plain ES6 modules, npm run serve); npm run build:d2l bundles+minifies scripts/ into dist/ for deployment only.",
   "type": "module",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "lint": "eslint \"scripts/src/**/*.js\" scripts/vent-scripts.js",
+    "lint": "eslint \"scripts/src/**/*.js\" scripts/vent-scripts.js \"tools/**/*.js\"",
     "serve": "serve . -l 5500",
     "build:d2l": "node tools/build-d2l.js"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "eslint": "^8.57.1",
     "serve": "^14.2.4"
   }
