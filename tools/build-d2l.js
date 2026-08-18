@@ -29,14 +29,14 @@ import {
   copyFileSync,
   rmSync,
 } from "node:fs";
-import { dirname, join, extname, relative } from "node:path";
+import { dirname, join, extname, relative, resolve } from "node:path";
 import * as esbuild from "esbuild";
 
 const DEFAULT_BASE = "https://vie74050.github.io/VentilatorLungSim/dist/";
 const SRC = "index.html";
 const SCRIPTS_SRC = "scripts";
-const ENTRY = `${SCRIPTS_SRC}/vent-scripts.js`;
-
+const ENTRY = join(SCRIPTS_SRC, "vent-scripts.js");
+ 
 function parseArgs(argv) {
   const vIdx = argv.indexOf("--v");
   const version = vIdx !== -1 ? argv[vIdx + 1] : "v1.0.0";
@@ -107,8 +107,7 @@ async function buildScriptsFolder(scriptsDistFolder, minify) {
 
   const topLevelFiles = readdirSync(SCRIPTS_SRC)
     .map((f) => join(SCRIPTS_SRC, f))
-    .filter((f) => statSync(f).isFile() && f !== ENTRY);
-
+    .filter((f) => statSync(f).isFile() && resolve(f) !== resolve(ENTRY)); 
   for (const file of topLevelFiles) {
     const rel = relative(SCRIPTS_SRC, file);
     const outPath = join(scriptsDistFolder, rel);
